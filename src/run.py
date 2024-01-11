@@ -1,16 +1,15 @@
-from pydantic import BaseSettings, Field
+import os
 
-from engine.tg_api import GetUpdatesRequest, SyncTgClient
+from core import SyncTgClient
+from core.tg_api import GetUpdatesRequest
 from states import state_machine
 
 
-class Settings(BaseSettings):
-    tg_bot_token: str = Field(..., env='TG_BOT_TOKEN')
-
-
 def run_bot():
-    with SyncTgClient.setup(Settings().tg_bot_token):
-        GetUpdatesRequest().run_polling(state_machine.process)
+    tg_bot_token = os.environ['TG_BOT_TOKEN']
+    with SyncTgClient.setup(tg_bot_token):
+        for update in GetUpdatesRequest().listen_updates():
+            state_machine.process(update)
 
 
 if __name__ == '__main__':

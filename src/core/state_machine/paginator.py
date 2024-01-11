@@ -2,7 +2,7 @@ from typing import Callable
 
 import more_itertools
 
-from engine.tg_api import InlineKeyboardButton
+from core.tg_api import InlineKeyboardButton
 
 
 class Paginator:

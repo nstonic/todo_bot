@@ -3,8 +3,8 @@ from typing import Type, NamedTuple, ClassVar, final
 
 from pydantic import BaseModel, Field
 
-from engine.tg_api import Update
-from engine.state_machine.errors import StateRouterError
+from core.tg_api import Update
+from core.state_machine.errors import StateRouterError
 
 MAX_STATES_CHAIN_LEN = 10
 
@@ -15,7 +15,7 @@ class Locator(NamedTuple):
 
 
 class BaseState(BaseModel):
-    user_id: int
+    chat_id: int
     _state_name: ClassVar
 
     model_config = {'arbitrary_types_allowed': True}
@@ -39,9 +39,9 @@ class StateRouter(dict[str, Type[BaseState]]):
 
         return decorator
 
-    def restore_state(self, locator: Locator, user_id: int) -> BaseState:
+    def restore_state(self, locator: Locator, chat_id: int) -> BaseState:
         state_class = self[locator.state_name]
-        state_params = locator.params | {'user_id': user_id}
+        state_params = locator.params | {'chat_id': chat_id}
         return state_class.parse_obj(state_params)
 
     @classmethod
@@ -86,30 +86,30 @@ class StateMachine(BaseModel):
 
     def process(self, update: Update):
         if update.callback_query:
-            user_id = update.callback_query.from_.id
+            chat_id = update.callback_query.from_.id
         elif update.message:
-            user_id = update.message.from_.id
+            chat_id = update.message.from_.id
         else:
             return
 
         if update.message and update.message.text in self.commands_map:
             print(f'Processing command "{update.message.text}"')
             state_locator = self.commands_map[update.message.text]
-            self.switch_state(state_locator, update, user_id)
+            self.switch_state(state_locator, update, chat_id)
             return
 
-        locator = self.locators_repository.restore_locator_by_user_id(user_id)
+        locator = self.locators_repository.restore_locator_by_user_id(chat_id)
 
         if not locator:
             print(f'Locator not found. Redirecting to the start state.')
-            self.switch_state(self.start_state_locator, update, user_id)
+            self.switch_state(self.start_state_locator, update, chat_id)
             return
         else:
-            state = self.router.restore_state(locator, user_id)
+            state = self.router.restore_state(locator, chat_id)
             next_state_locator = state.process(update)
 
         if not next_state_locator:
-            self.locators_repository.save_user_locator(user_id, locator)
+            self.locators_repository.save_user_locator(chat_id, locator)
             return
 
         if locator != next_state_locator:
@@ -119,15 +119,15 @@ class StateMachine(BaseModel):
         while next_state_locator:
             if states_chain_counter >= MAX_STATES_CHAIN_LEN:
                 print(f'Maximum states chain length reached: {MAX_STATES_CHAIN_LEN}')
-                self.locators_repository.save_user_locator(user_id, locator)
+                self.locators_repository.save_user_locator(chat_id, locator)
                 break
-            next_state_locator = self.switch_state(next_state_locator, update, user_id)
+            next_state_locator = self.switch_state(next_state_locator, update, chat_id)
             states_chain_counter += 1
 
-    def switch_state(self, next_state_locator: Locator, update: Update, user_id: int) -> Locator | None:
+    def switch_state(self, next_state_locator: Locator, update: Update, chat_id: int) -> Locator | None:
         print(f'Switching to state with locator: {next_state_locator}')
-        next_state = self.router.restore_state(next_state_locator, user_id)
+        next_state = self.router.restore_state(next_state_locator, chat_id)
         print(f'State: {next_state.__class__.__name__}')
         if locator := next_state.enter_state(update):
             return locator
-        self.locators_repository.save_user_locator(user_id, locator)
+        self.locators_repository.save_user_locator(chat_id, locator)

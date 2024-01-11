@@ -8,7 +8,7 @@ from .tg_types import (
 )
 from .tg_methods import (
     SendMessageRequest,
-    SendMessageResponse,
+    SendMessageResponse, GetUpdatesRequest,
 )
 
 ReplyMarkup = Union[

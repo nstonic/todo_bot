@@ -1,12 +1,11 @@
 import asyncio
 import io
 import json
-from collections.abc import AsyncGenerator, Callable, Generator
-from contextlib import suppress
-from itertools import cycle
+from collections.abc import AsyncGenerator, Generator
+from itertools import chain, repeat
 from textwrap import dedent
 from time import sleep
-from typing import Any, Union
+from typing import Any, Union, NoReturn
 
 import httpx
 from pydantic import BaseModel, Field
@@ -240,11 +239,11 @@ class SendMessageRequest(BaseTgRequest):
         description="Pass True if the message should be sent even if the specified replied-to message is not found.",
     )
     reply_markup: Union[
-        tg_types.InlineKeyboardMarkup,
-        tg_types.ReplyKeyboardMarkup,
-        tg_types.ReplyKeyboardRemove,
-        tg_types.ForceReply,
-    ] | None = Field(
+                      tg_types.InlineKeyboardMarkup,
+                      tg_types.ReplyKeyboardMarkup,
+                      tg_types.ReplyKeyboardRemove,
+                      tg_types.ForceReply,
+                  ] | None = Field(
         default=None,
         description=dedent("""\
             Additional interface options. A JSON-serialized object for an inline keyboard, custom reply keyboard,
@@ -345,11 +344,11 @@ class SendBytesPhotoRequest(BaseTgRequest):
         description="Pass True if the message should be sent even if the specified replied-to message is not found.",
     )
     reply_markup: Union[
-        tg_types.InlineKeyboardMarkup,
-        tg_types.ReplyKeyboardMarkup,
-        tg_types.ReplyKeyboardRemove,
-        tg_types.ForceReply,
-    ] | None = Field(
+                      tg_types.InlineKeyboardMarkup,
+                      tg_types.ReplyKeyboardMarkup,
+                      tg_types.ReplyKeyboardRemove,
+                      tg_types.ForceReply,
+                  ] | None = Field(
         default=None,
         description=dedent("""\
             Additional interface options. A JSON-serialized object for an inline keyboard, custom reply keyboard,
@@ -447,11 +446,11 @@ class SendUrlPhotoRequest(BaseTgRequest):
         description="Pass True if the message should be sent even if the specified replied-to message is not found.",
     )
     reply_markup: Union[
-        tg_types.InlineKeyboardMarkup,
-        tg_types.ReplyKeyboardMarkup,
-        tg_types.ReplyKeyboardRemove,
-        tg_types.ForceReply,
-    ] | None = Field(
+                      tg_types.InlineKeyboardMarkup,
+                      tg_types.ReplyKeyboardMarkup,
+                      tg_types.ReplyKeyboardRemove,
+                      tg_types.ForceReply,
+                  ] | None = Field(
         default=None,
         description=dedent("""\
             Additional interface options. A JSON-serialized object for an inline keyboard, custom reply keyboard,
@@ -560,11 +559,11 @@ class SendBytesDocumentRequest(BaseTgRequest):
         description="Pass True if the message should be sent even if the specified replied-to message is not found.",
     )
     reply_markup: Union[
-        tg_types.InlineKeyboardMarkup,
-        tg_types.ReplyKeyboardMarkup,
-        tg_types.ReplyKeyboardRemove,
-        tg_types.ForceReply,
-    ] | None = Field(
+                      tg_types.InlineKeyboardMarkup,
+                      tg_types.ReplyKeyboardMarkup,
+                      tg_types.ReplyKeyboardRemove,
+                      tg_types.ForceReply,
+                  ] | None = Field(
         default=None,
         description=dedent("""\
             Additional interface options. A JSON-serialized object for an inline keyboard, custom reply keyboard,
@@ -673,11 +672,11 @@ class SendUrlDocumentRequest(BaseTgRequest):
         description="Pass True if the message should be sent even if the specified replied-to message is not found.",
     )
     reply_markup: Union[
-        tg_types.InlineKeyboardMarkup,
-        tg_types.ReplyKeyboardMarkup,
-        tg_types.ReplyKeyboardRemove,
-        tg_types.ForceReply,
-    ] | None = Field(
+                      tg_types.InlineKeyboardMarkup,
+                      tg_types.ReplyKeyboardMarkup,
+                      tg_types.ReplyKeyboardRemove,
+                      tg_types.ForceReply,
+                  ] | None = Field(
         default=None,
         description=dedent("""\
             Additional interface options. A JSON-serialized object for an inline keyboard, custom reply keyboard,
@@ -1226,56 +1225,50 @@ class GetUpdatesRequest(BaseTgRequest):
         response = self.post_as_json('getUpdates')
         yield from GetUpdatesResponse.parse_raw(response).result
 
-    async def arun_polling(self, update_handler: Callable) -> None:
-        """
-        Run polling - async.
-
-        :param update_handler: A function to process Telegram update
-        :return: None
-        """
-        def get_pause() -> int:
-            return pause if pause == max_pause else next(pauses)
-
+    async def alisten_updates(self) -> Generator[tg_types.Update, None, NoReturn]:
         max_pause = 10
-        pauses = cycle((1, 3, max_pause))
-        pause = 0
+        pauses = chain(
+            [0, 1, 3],
+            repeat(max_pause),
+        )
 
         while True:
-            with suppress(httpx.ReadTimeout):
-                try:
-                    updates = self.asend()
-                    async for update in updates:
-                        await update_handler(update)
-                        self.offset = update.update_id + 1
-                    pause = 0
-                    pauses = cycle((1, 3, max_pause))
-                except (httpx.ConnectError, httpx.RemoteProtocolError):
-                    pause = get_pause()
-                    await asyncio.sleep(pause)
+            try:
+                updates = self.asend()
+                async for update in updates:
+                    yield update
+                    self.offset = update.update_id + 1
+            except httpx.ReadTimeout:
+                continue
+            except (httpx.ConnectError, httpx.RemoteProtocolError, httpx.ConnectTimeout):
+                pause = next(pauses)
+                await asyncio.sleep(pause)
 
-    def run_polling(self, update_handler: Callable) -> None:
-        """
-        Run polling - sync.
+            pauses = chain(
+                [0, 1, 3],
+                repeat(max_pause),
+            )
 
-        :param update_handler: A function to process Telegram update
-        :return: None
-        """
-        def get_pause() -> int:
-            return pause if pause == max_pause else next(pauses)
+    def listen_updates(self) -> Generator[tg_types.Update, None, NoReturn]:
 
         max_pause = 10
-        pauses = cycle((1, 3, max_pause))
-        pause = 0
-
+        pauses = chain(
+            [0, 1, 3],
+            repeat(max_pause),
+        )
         while True:
-            with suppress(httpx.ReadTimeout):
-                try:
-                    updates = self.send()
-                    for update in updates:
-                        update_handler(update)
-                        self.offset = update.update_id + 1
-                    pause = 0
-                    pauses = cycle((1, 3, max_pause))
-                except (httpx.ConnectError, httpx.RemoteProtocolError):
-                    pause = get_pause()
-                    sleep(pause)
+            try:
+                updates = self.send()
+                for update in updates:
+                    yield update
+                    self.offset = update.update_id + 1
+            except httpx.ReadTimeout:
+                continue
+            except (httpx.ConnectError, httpx.RemoteProtocolError, httpx.ConnectTimeout):
+                pause = next(pauses)
+                sleep(pause)
+
+            pauses = chain(
+                [0, 1, 3],
+                repeat(max_pause),
+            )

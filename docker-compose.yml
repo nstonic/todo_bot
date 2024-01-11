@@ -1,16 +1,6 @@
 version: '3.7'
 
 services:
-
-  postgres:
-    image: postgres:14.8
-    environment:
-      POSTGRES_USER: postgres_user
-      POSTGRES_PASSWORD: postgres_password
-      POSTGRES_DB: postgres_db
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
   todo_bot:
     container_name: todo_bot
     build:
@@ -19,10 +9,5 @@ services:
     environment:
       POSTGRES_DSN: postgres://postgres_user:postgres_password@postgres:5432/postgres_db
       TG_BOT_TOKEN: ${TG_BOT_TOKEN?error}
-    depends_on:
-      - postgres
     volumes:
       - ./src:/opt/app/src/
-
-volumes:
-  postgres_data:
