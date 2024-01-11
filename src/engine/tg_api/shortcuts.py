@@ -6,7 +6,10 @@ from .tg_types import (
     ReplyKeyboardRemove,
     ForceReply,
 )
-from .tg_methods import SendMessageRequest
+from .tg_methods import (
+    SendMessageRequest,
+    SendMessageResponse,
+)
 
 ReplyMarkup = Union[
     InlineKeyboardMarkup,
@@ -16,7 +19,12 @@ ReplyMarkup = Union[
 ]
 
 
-def send_text_message(text: str, chat_id: int, reply_markup: ReplyMarkup = None, **message_sending_kwargs):
+def send_text_message(
+        text: str,
+        chat_id: int,
+        reply_markup: ReplyMarkup = None,
+        **message_sending_kwargs,
+) -> SendMessageResponse:
     return SendMessageRequest(
         text=text,
         chat_id=chat_id,
