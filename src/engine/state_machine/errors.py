@@ -1,0 +1,2 @@
+class StateRouterError(Exception):
+    pass
