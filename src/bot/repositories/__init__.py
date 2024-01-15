@@ -1,2 +1,2 @@
-from .locator import LocatorsRepository
+from .sessions import MemorySessionRepository
 from .models import Todo

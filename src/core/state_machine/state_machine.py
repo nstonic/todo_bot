@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Type, NamedTuple, ClassVar, final
+from typing import Type, NamedTuple, ClassVar, final, Any
 
 from pydantic import BaseModel, Field
 
@@ -63,21 +63,37 @@ class StateRouter(dict[str, Type[BaseState]]):
             raise StateRouterError(f'State locator {item} is not registered') from None
 
 
-class BaseLocatorsRepository(ABC):
+class BaseSessionRepository(dict, ABC):
+
+    @abstractmethod
+    def save_user_locator(self, user_id: int, locator: Locator):
+        pass
 
     @abstractmethod
     def restore_locator_by_user_id(self, user_id: int) -> Locator:
         pass
 
     @abstractmethod
-    def save_user_locator(self, user_id: int, locator: Locator):
+    def save_user_history(self, user_id: int, locator: Locator):
+        pass
+
+    @abstractmethod
+    def get_user_history(self, user_id: int) -> list[Locator]:
+        pass
+
+    @abstractmethod
+    def save_context_data(self, user_id: int, **kwargs):
+        pass
+
+    @abstractmethod
+    def get_context_data(self, user_id: int, key: str) -> Any:
         pass
 
 
 @final
 class StateMachine(BaseModel):
     router: StateRouter
-    locators_repository: BaseLocatorsRepository
+    session_repository: BaseSessionRepository
     start_state_locator: Locator
     commands_map: dict[str, Locator] = Field(default_factory=dict)
 
@@ -93,7 +109,7 @@ class StateMachine(BaseModel):
             self.switch_state(state_locator, update, chat_id)
             return
 
-        locator = self.locators_repository.restore_locator_by_user_id(chat_id)
+        locator = self.session_repository.restore_locator_by_user_id(chat_id)
 
         if not locator:
             print(f'Locator not found. Redirecting to the start state.')
@@ -113,15 +129,16 @@ class StateMachine(BaseModel):
         while next_state_locator:
             if states_chain_counter >= MAX_STATES_CHAIN_LEN:
                 print(f'Maximum states chain length reached: {MAX_STATES_CHAIN_LEN}')
-                self.locators_repository.save_user_locator(chat_id, locator)
+                self.session_repository.save_user_locator(chat_id, locator)
                 break
             next_state_locator = self.switch_state(next_state_locator, update, chat_id)
             states_chain_counter += 1
+        self.session_repository.save_user_history(chat_id, locator)
 
     def switch_state(self, next_state_locator: Locator, update: Update, chat_id: int) -> Locator | None:
+        self.session_repository.save_user_locator(chat_id, next_state_locator)
         print(f'Switching to state with locator: {next_state_locator}')
         next_state = self.router.restore_state(next_state_locator, chat_id)
         print(f'State: {next_state.__class__.__name__}')
         next_next_state_locator = next_state.enter_state(update)
-        self.locators_repository.save_user_locator(chat_id, next_state_locator)
         return next_next_state_locator
