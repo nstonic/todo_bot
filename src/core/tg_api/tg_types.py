@@ -26,7 +26,7 @@ class User(BaseModel, ValidableMixin):
     See here: https://core.telegram.org/bots/api#user
     """
 
-    id: int = Field( # noqa A003
+    id: int = Field(  # noqa A003
         description=dedent("""\
             Unique identifier for this user or bot. This number may have more than 32 significant bits and
             some programming languages may have difficulty/silent defects in interpreting it.
@@ -80,14 +80,14 @@ class Chat(BaseModel, ValidableMixin):
     See here: https://core.telegram.org/bots/api#chat
     """
 
-    id: int = Field( # noqa A003
+    id: int = Field(  # noqa A003
         description=dedent("""\
             Unique identifier for this chat. This number may have more than 32 significant bits and some programming
             languages may have difficulty/silent defects in interpreting it. But it has at most 52 significant bits,
             so a signed 64-bit integer or double-precision float type are safe for storing this identifier.
         """),
     )
-    type: str = Field( # noqa A003
+    type: str = Field(  # noqa A003
         description="Type of chat, can be either “private”, “group”, “supergroup” or “channel”.",
     )
     title: str | None = Field(
@@ -625,7 +625,7 @@ class MessageEntity(BaseModel, ValidableMixin):
     See here: https://core.telegram.org/bots/api#messageentity
     """
 
-    type: str = Field( # noqa A003
+    type: str = Field(  # noqa A003
         description=dedent("""\
             Type of the entity. Currently, can be “mention” (@username), “hashtag” (#hashtag),
             “cashtag” ($USD), “bot_command” (/start@jobs_bot), “url” (https://telegram.org),
@@ -1044,7 +1044,7 @@ class InputMediaUrlPhoto(BaseModel, ValidableMixin):
     See here: https://core.telegram.org/bots/api#inputmediaphoto
     """
 
-    type: str = Field( # noqa A003
+    type: str = Field(  # noqa A003
         default="photo",
         description="Type of the result, must be photo.",
     )
@@ -1085,7 +1085,7 @@ class InputMediaBytesPhoto(BaseModel, ValidableMixin):
     See here: https://core.telegram.org/bots/api#inputmediaphoto
     """
 
-    type: str = Field( # noqa A003
+    type: str = Field(  # noqa A003
         default="photo",
         description="Type of the result, must be photo.",
     )
@@ -1129,7 +1129,7 @@ class InputMediaUrlDocument(BaseModel, ValidableMixin):
     See here: https://core.telegram.org/bots/api#inputmediadocument
     """
 
-    type: str = Field( # noqa A003
+    type: str = Field(  # noqa A003
         default="document",
         description="Type of the result, must be document",
     )
@@ -1188,7 +1188,7 @@ class InputMediaBytesDocument(BaseModel, ValidableMixin):
     See here: https://core.telegram.org/bots/api#inputmediadocument
     """
 
-    type: str = Field( # noqa A003
+    type: str = Field(  # noqa A003
         default="document",
         description="Type of the result, must be document.",
     )
@@ -1250,7 +1250,7 @@ class CallbackQuery(BaseModel, ValidableMixin):
     See here: https://core.telegram.org/bots/api#callbackquery
     """
 
-    id: str = Field( # noqa A003
+    id: str = Field(  # noqa A003
         alias="id",
         description="Unique identifier for this query.",
     )
@@ -1289,7 +1289,7 @@ class CallbackQuery(BaseModel, ValidableMixin):
     )
 
     @root_validator
-    def check_callback_query(cls: CallbackQuery, tg_request: dict) -> dict | None: # noqa N805
+    def check_callback_query(cls: CallbackQuery, tg_request: dict) -> dict | None:  # noqa N805
         data = tg_request["data"]
         game_short_name = tg_request["game_short_name"]
         if not data and not game_short_name:
@@ -1345,7 +1345,7 @@ class InlineQuery(BaseModel, ValidableMixin):
     See here: https://core.telegram.org/bots/api#inlinequery
     """
 
-    id: str = Field( # noqa A003
+    id: str = Field(  # noqa A003
         description="Unique identifier for this query",
     )
     from_: User = Field(
@@ -1410,14 +1410,14 @@ class ShippingQuery(BaseModel, ValidableMixin):
     See here: https://core.telegram.org/bots/api#shippingquery
     """
 
-    id: str = Field( # noqa A003
+    id: str = Field(  # noqa A003
         description="Unique query identifier.",
     )
     from_: User = Field(
         alias="from",
         description="User who sent the query.",
     )
-    invoice_payload: str = Field( # noqa A003
+    invoice_payload: str = Field(  # noqa A003
         description="Bot specified invoice payload.",
     )
     shipping_address: ShippingAddress = Field(
@@ -1431,7 +1431,7 @@ class PreCheckoutQuery(BaseModel, ValidableMixin):
     See here: https://core.telegram.org/bots/api#precheckoutquery
     """
 
-    id: str = Field( # noqa A003
+    id: str = Field(  # noqa A003
         description="Unique query identifier.",
     )
     from_: User = Field(
@@ -1481,7 +1481,7 @@ class Poll(BaseModel, ValidableMixin):
     See here: https://core.telegram.org/bots/api#poll
     """
 
-    id: str = Field( # noqa A003
+    id: str = Field(  # noqa A003
         description="Unique poll identifier.",
     )
     question: str = Field(
@@ -1496,16 +1496,16 @@ class Poll(BaseModel, ValidableMixin):
     is_closed: bool = Field(
         description="True, if the poll is closed.",
     )
-    is_anonymous: bool = Field( # noqa A003
+    is_anonymous: bool = Field(  # noqa A003
         description="True, if the poll is anonymous.",
     )
-    type: str = Field( # noqa A003
+    type: str = Field(  # noqa A003
         description="Poll type, currently can be “regular” or “quiz”.",
     )
     allows_multiple_answers: bool = Field(
         description="True, if the poll allows multiple answers.",
     )
-    correct_option_id: int | None = Field( # noqa A003
+    correct_option_id: int | None = Field(  # noqa A003
         default=None,
         description=dedent("""\
             Optional. 0-based identifier of the correct answer option. Available only for polls in the quiz mode,
@@ -1975,7 +1975,15 @@ class Update(BaseModel, ValidableMixin):
         """),
     )
 
-    # TODO At most one of the optional parameters can be present in any given update.
+    @property
+    def chat_id(self) -> int:
+        if self.message:
+            return self.message.chat.id
+        if self.callback_query:
+            return self.callback_query.from_.id
+
+
+# TODO At most one of the optional parameters can be present in any given update.
 
 
 class ResponseParameters(BaseModel, ValidableMixin):

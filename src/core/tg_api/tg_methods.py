@@ -1250,7 +1250,6 @@ class GetUpdatesRequest(BaseTgRequest):
             )
 
     def listen_updates(self) -> Generator[tg_types.Update, None, NoReturn]:
-
         max_pause = 10
         pauses = chain(
             [0, 1, 3],
