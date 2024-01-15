@@ -29,6 +29,9 @@ class Paginator:
             page_number: int = 1,
     ) -> list[list[InlineKeyboardButton]]:
         page_number = min(max(1, page_number), self.total_pages)
+        prev_page_number = max(page_number - 1, 1)
+        next_page_number = min(page_number + 1, self.total_pages)
+
         page_keyboard = [
             [InlineKeyboardButton(
                 text=self.button_text_getter(item),
@@ -43,7 +46,7 @@ class Paginator:
                 ),
                 InlineKeyboardButton(
                     text='<',
-                    callback_data=f'{self.page_callback_data_prefix}#{page_number - 1}'
+                    callback_data=f'{self.page_callback_data_prefix}#{prev_page_number}'
                 ),
                 InlineKeyboardButton(
                     text=str(page_number),
@@ -51,7 +54,7 @@ class Paginator:
                 ),
                 InlineKeyboardButton(
                     text='>',
-                    callback_data=f'{self.page_callback_data_prefix}#{page_number + 1}'
+                    callback_data=f'{self.page_callback_data_prefix}#{next_page_number}'
                 ),
                 InlineKeyboardButton(
                     text=str(self.total_pages),

@@ -1,3 +1,5 @@
+import os
+
 from sqlalchemy import String, Boolean, select, BigInteger, ForeignKey, create_engine
 from sqlalchemy.orm import (
     DeclarativeBase,
@@ -7,8 +9,8 @@ from sqlalchemy.orm import (
     Session,
 )
 
-# engine = create_engine('sqlite:///db.db', echo=os.getenv('DB_ECHO', False))
-engine = create_engine('sqlite:///db.db', echo=True)
+engine = create_engine('sqlite:///db.db', echo=os.getenv('DB_ECHO', False))
+# engine = create_engine('sqlite:///db.db', echo=True)
 db_session = Session(engine)
 
 
@@ -32,7 +34,7 @@ class Todo(Base):
 
     @classmethod
     def get_active_for_user(cls, user_id: int):
-        stmt = select(cls).where(Todo.tg_user_id == user_id, is_done=False)
+        stmt = select(cls).where(Todo.tg_user_id == user_id, Todo.is_done == False)
         return db_session.scalars(stmt).all()
 
     @classmethod

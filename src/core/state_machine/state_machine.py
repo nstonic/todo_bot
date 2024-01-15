@@ -85,12 +85,7 @@ class StateMachine(BaseModel):
         arbitrary_types_allowed = True
 
     def process(self, update: Update):
-        if update.callback_query:
-            chat_id = update.callback_query.from_.id
-        elif update.message:
-            chat_id = update.message.from_.id
-        else:
-            return
+        chat_id = update.chat_id
 
         if update.message and update.message.text in self.commands_map:
             print(f'Processing command "{update.message.text}"')
@@ -109,7 +104,6 @@ class StateMachine(BaseModel):
             next_state_locator = state.process(update)
 
         if not next_state_locator:
-            self.locators_repository.save_user_locator(chat_id, locator)
             return
 
         if locator != next_state_locator:
@@ -128,6 +122,6 @@ class StateMachine(BaseModel):
         print(f'Switching to state with locator: {next_state_locator}')
         next_state = self.router.restore_state(next_state_locator, chat_id)
         print(f'State: {next_state.__class__.__name__}')
-        if locator := next_state.enter_state(update):
-            return locator
-        self.locators_repository.save_user_locator(chat_id, locator)
+        next_next_state_locator = next_state.enter_state(update)
+        self.locators_repository.save_user_locator(chat_id, next_state_locator)
+        return next_next_state_locator
