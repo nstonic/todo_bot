@@ -3,14 +3,15 @@ from core import (
     StateMachine,
     Locator,
     Paginator,
+    BaseState,
 )
+from core.tg_api import Update, InlineKeyboardButton
 from core.tg_api.shortcuts import (
     send_text_message,
     edit_inline_keyboard,
 )
 from .repositories import Todo, MemorySessionRepository
-from .state_classes import ClassicState
-from core.tg_api import Update, InlineKeyboardButton
+from .state_classes import ClassicState, DestroyInlineKeyboardMixin
 
 router = StateRouter()
 start_state_locator = Locator('/')
@@ -27,10 +28,10 @@ state_machine = StateMachine(
 
 
 @router.register('/')
-class StartState(ClassicState):
+class StartState(BaseState, DestroyInlineKeyboardMixin):
     page_number: int = 1
     show_done: bool = False
-    switch_page: bool = False
+    edit_message_id: int | None = None
 
     def enter_state(self, update: Update) -> Locator | None:
         if self.show_done:
@@ -57,36 +58,34 @@ class StartState(ClassicState):
             show_done_button,
         ])
 
-        last_message_id = session_repository.get_context_data(self.chat_id, 'last_message_id')
-        if self.switch_page and last_message_id:
+        if self.edit_message_id:
             edit_inline_keyboard(
                 self.chat_id,
-                last_message_id,
+                self.edit_message_id,
                 keyboard,
                 ignore_exactly_the_same=True,
             )
         else:
-            sent_message = send_text_message(
+            send_text_message(
                 text,
                 self.chat_id,
                 keyboard,
             )
-            session_repository.save_context_data(
-                self.chat_id,
-                last_message_id=sent_message.message_id,
-            )
 
-    def handle_inline_buttons(self, callback_data: str) -> Locator:
-        match callback_data:
+    def process(self, update: Update) -> Locator | None:
+        if not update.callback_query:
+            return 
+        
+        match update.callback_query.data:
             case 'add':
-                return Locator('/add-todo/title/')
+                return Locator('/add_todo/title/')
             case 'show_done':
-                return Locator('/', {'page_number': 1, 'show_done': True})
+                return Locator('/', {'show_done': True})
             case 'show_active':
-                return Locator('/', {'page_number': 1, 'show_done': False})
+                return Locator('/')
             case callback_data if 'page#' in callback_data:
                 params = {
-                    'switch_page': True,
+                    'edit_message_id': update.callback_query.message.message_id,
                 }
                 _, page_number = callback_data.rsplit('#', 1)
                 if page_number.isdigit():
@@ -99,16 +98,8 @@ class StartState(ClassicState):
             case _:
                 return Locator('/', {'switch_page': True})
 
-    def exit_state(self, update: Update) -> None:
-        if last_message_id := session_repository.get_context_data(self.chat_id, 'last_message_id'):
-            edit_inline_keyboard(
-                chat_id=self.chat_id,
-                message_id=last_message_id,
-                keyboard=None,
-            )
 
-
-@router.register('/add-todo/title/')
+@router.register('/add_todo/title/')
 class AddTodoTitleState(ClassicState):
 
     def enter_state(self, update: Update) -> Locator | None:
@@ -118,10 +109,10 @@ class AddTodoTitleState(ClassicState):
         )
 
     def handle_text_message(self, message_text: str) -> Locator:
-        return Locator('/add-todo/content/', {'title': message_text})
+        return Locator('/add_todo/content/', {'title': message_text})
 
 
-@router.register('/add-todo/content/')
+@router.register('/add_todo/content/')
 class AddTodoContentState(ClassicState):
     title: str
 
@@ -149,7 +140,7 @@ class AddTodoContentState(ClassicState):
 
 
 @router.register('/todo/edit/')
-class ShowTodoState(ClassicState):
+class ShowTodoState(ClassicState, DestroyInlineKeyboardMixin):
     todo_id: int
 
     def enter_state(self, update: Update) -> Locator | None:
@@ -196,11 +187,3 @@ class ShowTodoState(ClassicState):
                 return self.delete_todo()
             case 'back':
                 return Locator('/')
-
-    def exit_state(self, update: Update) -> None:
-        if last_message_id := session_repository.get_context_data(self.chat_id, 'last_message_id'):
-            edit_inline_keyboard(
-                chat_id=self.chat_id,
-                message_id=last_message_id,
-                keyboard=None,
-            )

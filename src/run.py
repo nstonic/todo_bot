@@ -1,8 +1,8 @@
 import os
 from typing import NoReturn
 
-from core import SyncTgClient, GetUpdatesRequest
 from bot import state_machine
+from core import SyncTgClient, GetUpdatesRequest
 
 
 def run_bot() -> NoReturn:

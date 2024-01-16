@@ -1,10 +1,10 @@
 from abc import ABC, abstractmethod
-from typing import Type, NamedTuple, ClassVar, final, Any
+from typing import Type, NamedTuple, ClassVar, final
 
 from pydantic import BaseModel, Field
 
-from core.tg_api import Update
 from core.state_machine.errors import StateRouterError
+from core.tg_api import Update
 
 MAX_STATES_CHAIN_LEN = 10
 
@@ -79,14 +79,6 @@ class BaseSessionRepository(dict, ABC):
 
     @abstractmethod
     def get_user_history(self, user_id: int) -> list[Locator]:
-        pass
-
-    @abstractmethod
-    def save_context_data(self, user_id: int, **kwargs) -> None:
-        pass
-
-    @abstractmethod
-    def get_context_data(self, user_id: int, key: str) -> Any:
         pass
 
 

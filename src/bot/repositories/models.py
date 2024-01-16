@@ -1,6 +1,6 @@
 import os
 
-from sqlalchemy import String, Boolean, select, BigInteger, create_engine
+from sqlalchemy import String, Boolean, BigInteger, create_engine
 from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
@@ -9,7 +9,6 @@ from sqlalchemy.orm import (
 )
 
 engine = create_engine('sqlite:///db.db', echo=os.getenv('DB_ECHO', False))
-# engine = create_engine('sqlite:///db.db', echo=True)
 db_session = Session(engine)
 
 
