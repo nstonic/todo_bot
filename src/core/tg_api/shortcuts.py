@@ -39,6 +39,8 @@ def edit_text_message(
         message_id: int,
         text: str,
         reply_markup: ReplyMarkup = None,
+        *,
+        ignore_no_changes=False,
         **message_sending_kwargs,
 ) -> Message | None:
     try:
@@ -50,7 +52,7 @@ def edit_text_message(
             **message_sending_kwargs,
         ).send().result
     except TgHttpStatusError as ex:
-        if 'exactly the same' in str(ex):
+        if ignore_no_changes and 'exactly the same' in str(ex):
             pass
     else:
         return message

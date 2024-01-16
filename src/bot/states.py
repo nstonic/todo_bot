@@ -2,10 +2,9 @@ from core import (
     StateRouter,
     StateMachine,
     Locator,
-    send_text_message,
     Paginator,
 )
-from core.tg_api.shortcuts import edit_text_message
+from core.tg_api.shortcuts import edit_text_message, send_text_message
 from .repositories import Todo, MemorySessionRepository
 from .state_classes import ClassicState
 from core.tg_api import Update, InlineKeyboardMarkup, InlineKeyboardButton, EditMessageReplyMarkupRequest
@@ -56,6 +55,7 @@ class StartState(ClassicState):
                 last_message_id,
                 text=text,
                 reply_markup=InlineKeyboardMarkup(inline_keyboard=keyboard),
+                ignore_no_changes=True,
             )
         else:
             sent_message = send_text_message(

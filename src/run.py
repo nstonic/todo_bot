@@ -1,8 +1,7 @@
 import os
 from typing import NoReturn
 
-from core import SyncTgClient
-from core.tg_api import GetUpdatesRequest
+from core import SyncTgClient, GetUpdatesRequest
 from bot import state_machine
 
 
