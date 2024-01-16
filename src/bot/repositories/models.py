@@ -27,6 +27,11 @@ class Todo(Base):
     tg_user_id: Mapped[int] = mapped_column(BigInteger)
 
     @classmethod
+    def get_by_id(cls, todo_id: int):
+        stmt = select(cls).where(Todo.id == todo_id)
+        return db_session.scalars(stmt).one_or_none()
+
+    @classmethod
     def get_all_for_user(cls, user_id: int):
         stmt = select(cls).where(Todo.tg_user_id == user_id)
         return db_session.scalars(stmt).all()

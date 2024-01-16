@@ -4,8 +4,6 @@ from core.tg_api import Update
 
 class ClassicState(BaseState):
     def process(self, update: Update) -> Locator | None:
-        print(update.message)
-        print(self.__class__)
         if update.callback_query:
             return self.handle_inline_buttons(update.callback_query.data)
         if update.message:
