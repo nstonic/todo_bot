@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from functools import partial
 from typing import Type, NamedTuple, ClassVar, final, Any
 
 from pydantic import BaseModel, Field
