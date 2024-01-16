@@ -2,6 +2,8 @@ from typing import Any
 
 from core.state_machine import BaseSessionRepository, Locator
 
+MAX_HISTORY_LENGTH = 50
+
 
 class MemorySessionRepository(BaseSessionRepository):
 
@@ -21,6 +23,8 @@ class MemorySessionRepository(BaseSessionRepository):
     def save_user_history(self, user_id: int, locator: Locator):
         if user_id in self:
             self[user_id]['history'].append(locator)
+            if len(self[user_id]['history']) > MAX_HISTORY_LENGTH:
+                self[user_id]['history'] = self[user_id]['history'][:MAX_HISTORY_LENGTH]
 
     def get_user_history(self, user_id: int) -> list[Locator]:
         return self.get(user_id, {}).get('history', [])
