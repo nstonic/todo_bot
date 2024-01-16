@@ -1,11 +1,10 @@
 import os
 
-from sqlalchemy import String, Boolean, select, BigInteger, ForeignKey, create_engine
+from sqlalchemy import String, Boolean, select, BigInteger, create_engine
 from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
     mapped_column,
-    relationship,
     Session,
 )
 
