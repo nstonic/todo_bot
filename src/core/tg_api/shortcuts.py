@@ -5,8 +5,6 @@ from .tg_types import (
     KeyboardButton,
     InlineKeyboardMarkup,
     ReplyKeyboardMarkup,
-    ReplyKeyboardRemove,
-    ForceReply,
     Message,
     InlineKeyboardButton,
     MessageEntity,
@@ -15,13 +13,6 @@ from .tg_methods import (
     SendMessageRequest,
     EditMessageReplyMarkupRequest,
 )
-
-ReplyMarkup = Union[
-    InlineKeyboardMarkup,
-    ReplyKeyboardMarkup,
-    ReplyKeyboardRemove,
-    ForceReply,
-]
 
 Keyboard = Union[
     list[list[InlineKeyboardButton]],
@@ -33,7 +24,7 @@ def send_text_message(
         text: str,
         chat_id: int,
         keyboard: Keyboard | None = None,
-        parse_mode: Literal['MarkdownV2', 'HTML', 'Markdown'] | None = None,
+        parse_mode: Literal['Markdown', 'MarkdownV2', 'HTML'] | None = None,
         entities: list[MessageEntity] | None = None,
         disable_web_page_preview: bool | None = None,
         disable_notification: bool | None = None,

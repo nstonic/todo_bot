@@ -28,18 +28,15 @@ class Todo(Base):
 
     @classmethod
     def get_by_id(cls, todo_id: int):
-        stmt = select(cls).where(Todo.id == todo_id)
-        return db_session.scalars(stmt).one_or_none()
+        return db_session.query(Todo).filter_by(id=todo_id).first()
 
     @classmethod
     def get_all_for_user(cls, user_id: int):
-        stmt = select(cls).where(Todo.tg_user_id == user_id)
-        return db_session.scalars(stmt).all()
+        return db_session.query(Todo).filter_by(tg_user_id=user_id).all()
 
     @classmethod
     def get_active_for_user(cls, user_id: int):
-        stmt = select(cls).where(Todo.tg_user_id == user_id, Todo.is_done == False)
-        return db_session.scalars(stmt).all()
+        return db_session.query(Todo).filter_by(tg_user_id=user_id, is_done=False).all()
 
     @classmethod
     def create_for_user(cls, user_id: int, title: str, content: str, is_done: bool = False):
@@ -51,6 +48,16 @@ class Todo(Base):
         )
         db_session.add(todo)
         db_session.commit()
+
+    @classmethod
+    def mark_todo_as_done(cls, todo_id: int):
+        todo = cls.get_by_id(todo_id)
+        todo.is_done = True
+        db_session.commit()
+
+    @classmethod
+    def delete(cls, todo_id: int):
+        db_session.query(Todo).filter_by(id=todo_id).delete()
 
 
 Todo.metadata.create_all(engine, checkfirst=True)

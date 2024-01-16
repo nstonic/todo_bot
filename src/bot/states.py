@@ -29,18 +29,24 @@ state_machine = StateMachine(
 @router.register('/')
 class StartState(ClassicState):
     page_number: int = 1
+    show_done: bool = False
     switch_page: bool = False
 
     def enter_state(self, update: Update) -> Locator | None:
-        active_todos = Todo.get_active_for_user(self.chat_id)
+        if self.show_done:
+            todos = Todo.get_all_for_user(self.chat_id)
+            show_done_button = InlineKeyboardButton(text='Скрыть сделанные', callback_data='show_active')
+        else:
+            todos = Todo.get_active_for_user(self.chat_id)
+            show_done_button = InlineKeyboardButton(text='Показать все', callback_data='show_done')
 
-        if not active_todos:
+        if not todos:
             text = 'Привет!\nУ тебя еще нет задач. Добавь первую.'
             keyboard = []
         else:
             text = 'Привет!\nВот список твоих текущих задач:'
             keyboard = Paginator(
-                active_todos,
+                todos,
                 button_text_getter=lambda todo: todo.title,
                 button_callback_data_getter=lambda todo: todo.id,
                 page_size=6,
@@ -48,7 +54,7 @@ class StartState(ClassicState):
 
         keyboard.append([
             InlineKeyboardButton(text='Добавить', callback_data='add'),
-            InlineKeyboardButton(text='Сделанные', callback_data='show_done'),
+            show_done_button,
         ])
 
         last_message_id = session_repository.get_context_data(self.chat_id, 'last_message_id')
@@ -74,6 +80,10 @@ class StartState(ClassicState):
         match callback_data:
             case 'add':
                 return Locator('/add-todo/title/')
+            case 'show_done':
+                return Locator('/', {'page_number': 1, 'show_done': True})
+            case 'show_active':
+                return Locator('/', {'page_number': 1, 'show_done': False})
             case callback_data if 'page#' in callback_data:
                 params = {
                     'switch_page': True,
@@ -85,7 +95,7 @@ class StartState(ClassicState):
                     params['page_number'] = 1
                 return Locator('/', params)
             case callback_data if callback_data.isdigit():
-                return Locator('/show_todo/', {'todo_id': int(callback_data)})
+                return Locator('/todo/edit/', {'todo_id': int(callback_data)})
             case _:
                 return Locator('/', {'switch_page': True})
 
@@ -108,7 +118,6 @@ class AddTodoTitleState(ClassicState):
         )
 
     def handle_text_message(self, message_text: str) -> Locator:
-        print(message_text)
         return Locator('/add-todo/content/', {'title': message_text})
 
 
@@ -139,7 +148,7 @@ class AddTodoContentState(ClassicState):
         return Locator('/')
 
 
-@router.register('/show_todo/')
+@router.register('/todo/edit/')
 class ShowTodoState(ClassicState):
     todo_id: int
 
@@ -168,3 +177,30 @@ class ShowTodoState(ClassicState):
             keyboard,
             parse_mode='HTML'
         )
+
+    def mark_todo_as_done(self) -> Locator:
+        Todo.mark_todo_as_done(self.todo_id)
+        return Locator('/')
+
+    def delete_todo(self) -> Locator:
+        Todo.delete(self.todo_id)
+        return Locator('/')
+
+    def handle_inline_buttons(self, callback_data: str) -> Locator | None:
+        match callback_data:
+            case 'done':
+                return self.mark_todo_as_done()
+            case 'edit':
+                return Locator('/todo/edit/', {'todo_id': self.todo_id})
+            case 'delete':
+                return self.delete_todo()
+            case 'back':
+                return Locator('/')
+
+    def exit_state(self, update: Update) -> None:
+        if last_message_id := session_repository.get_context_data(self.chat_id, 'last_message_id'):
+            edit_inline_keyboard(
+                chat_id=self.chat_id,
+                message_id=last_message_id,
+                keyboard=None,
+            )
