@@ -8,14 +8,14 @@ from core import (
 from core.tg_api.shortcuts import edit_text_message
 from .repositories import Todo, MemorySessionRepository
 from .state_classes import ClassicState
-from core.tg_api import Update, InlineKeyboardMarkup, InlineKeyboardButton
+from core.tg_api import Update, InlineKeyboardMarkup, InlineKeyboardButton, EditMessageReplyMarkupRequest
 
 router = StateRouter()
 start_state_locator = Locator('/')
 session_repository = MemorySessionRepository()
 
 state_machine = StateMachine(
-    router=router,
+    state_router=router,
     session_repository=session_repository,
     start_state_locator=start_state_locator,
     commands_map={
@@ -33,10 +33,10 @@ class StartState(ClassicState):
         active_todos = Todo.get_active_for_user(self.chat_id)
 
         if not active_todos:
-            text = 'Привет!\nУ тебя еще нет дел. Добавь первое:'
+            text = 'Привет!\nУ тебя еще нет задач. Добавь первую.'
             keyboard = []
         else:
-            text = 'Привет!\nВот список твоих текущих дел:'
+            text = 'Привет!\nВот список твоих текущих задач:'
             keyboard = Paginator(
                 active_todos,
                 button_text_getter=lambda todo: todo.title,
@@ -46,7 +46,7 @@ class StartState(ClassicState):
 
         keyboard.append([
             InlineKeyboardButton(text='Добавить', callback_data='add'),
-            InlineKeyboardButton(text='Показать сделанные', callback_data='show_done'),
+            InlineKeyboardButton(text='Сделанные', callback_data='show_done'),
         ])
 
         last_message_id = session_repository.get_context_data(self.chat_id, 'last_message_id')
@@ -71,7 +71,7 @@ class StartState(ClassicState):
     def handle_inline_buttons(self, callback_data: str):
         match callback_data:
             case 'add':
-                return Locator('/add_todo/')
+                return Locator('/add-todo/title/')
             case callback_data if 'page#' in callback_data:
                 params = {
                     'switch_page': True,
@@ -84,3 +84,52 @@ class StartState(ClassicState):
                 return Locator('/', params)
             case callback_data if callback_data.isdigit():
                 return Locator('/show_todo/' + callback_data)
+
+    def exit_state(self, update: Update) -> None:
+        if last_message_id := session_repository.get_context_data(self.chat_id, 'last_message_id'):
+            EditMessageReplyMarkupRequest(
+                chat_id=self.chat_id,
+                message_id=last_message_id,
+                reply_markup=None,
+            )
+
+
+@router.register('/add-todo/title/')
+class AddTodoTitleState(ClassicState):
+
+    def enter_state(self, update: Update) -> Locator | None:
+        send_text_message(
+            text='Как назовем задачу?',
+            chat_id=self.chat_id,
+        )
+
+    def handle_text_message(self, message_text: str):
+        print(message_text)
+        return Locator('/add-todo/content/', {'title': message_text})
+
+
+@router.register('/add-todo/content/')
+class AddTodoContentState(ClassicState):
+    title: str
+
+    def enter_state(self, update: Update) -> Locator | None:
+        send_text_message(
+            text='ОК. Опиши суть задачи.',
+            chat_id=self.chat_id,
+        )
+
+    def handle_text_message(self, message_text: str):
+        if len(self.title) > 30:
+            title = self.title[:30]
+        else:
+            title = self.title
+        Todo.create_for_user(
+            user_id=self.chat_id,
+            title=title,
+            content=message_text
+        )
+        send_text_message(
+            text='ОК. Сохранил задачу',
+            chat_id=self.chat_id,
+        )
+        return Locator('/')

@@ -12,8 +12,10 @@ class MemorySessionRepository(BaseSessionRepository):
                 'history': [],
                 'context': {},
             }
+        else:
+            self[user_id]['locator'] = locator
 
-    def restore_locator_by_user_id(self, user_id: int) -> Locator | None:
+    def get_locator_by_user_id(self, user_id: int) -> Locator | None:
         return self.get(user_id, {}).get('locator')
 
     def save_user_history(self, user_id: int, locator: Locator):

@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from functools import partial
 from typing import Type, NamedTuple, ClassVar, final, Any
 
 from pydantic import BaseModel, Field
@@ -66,15 +67,15 @@ class StateRouter(dict[str, Type[BaseState]]):
 class BaseSessionRepository(dict, ABC):
 
     @abstractmethod
-    def save_user_locator(self, user_id: int, locator: Locator):
+    def save_user_locator(self, user_id: int, locator: Locator) -> None:
         pass
 
     @abstractmethod
-    def restore_locator_by_user_id(self, user_id: int) -> Locator:
+    def get_locator_by_user_id(self, user_id: int) -> Locator | None:
         pass
 
     @abstractmethod
-    def save_user_history(self, user_id: int, locator: Locator):
+    def save_user_history(self, user_id: int, locator: Locator) -> None:
         pass
 
     @abstractmethod
@@ -82,7 +83,7 @@ class BaseSessionRepository(dict, ABC):
         pass
 
     @abstractmethod
-    def save_context_data(self, user_id: int, **kwargs):
+    def save_context_data(self, user_id: int, **kwargs) -> None:
         pass
 
     @abstractmethod
@@ -92,7 +93,7 @@ class BaseSessionRepository(dict, ABC):
 
 @final
 class StateMachine(BaseModel):
-    router: StateRouter
+    state_router: StateRouter
     session_repository: BaseSessionRepository
     start_state_locator: Locator
     commands_map: dict[str, Locator] = Field(default_factory=dict)
@@ -101,44 +102,39 @@ class StateMachine(BaseModel):
         arbitrary_types_allowed = True
 
     def process(self, update: Update):
-        chat_id = update.chat_id
-
-        if update.message and update.message.text in self.commands_map:
-            print(f'Processing command "{update.message.text}"')
-            state_locator = self.commands_map[update.message.text]
-            self.switch_state(state_locator, update, chat_id)
+        if locator := self.get_locator_from_command(update):
+            self.switch_state(locator, update)
             return
 
-        locator = self.session_repository.restore_locator_by_user_id(chat_id)
-
+        locator = self.session_repository.get_locator_by_user_id(update.chat_id)
         if not locator:
-            print(f'Locator not found. Redirecting to the start state.')
-            self.switch_state(self.start_state_locator, update, chat_id)
-            return
-        else:
-            state = self.router.restore_state(locator, chat_id)
-            next_state_locator = state.process(update)
-
-        if not next_state_locator:
+            self.switch_state(self.start_state_locator, update)
             return
 
-        if locator != next_state_locator:
+        state = self.state_router.restore_state(locator, update.chat_id)
+        next_locator = state.process(update)
+
+        if next_locator and locator.state_name != next_locator.state_name:
             state.exit_state(update)
 
-        states_chain_counter = 0
-        while next_state_locator:
-            if states_chain_counter >= MAX_STATES_CHAIN_LEN:
-                print(f'Maximum states chain length reached: {MAX_STATES_CHAIN_LEN}')
-                self.session_repository.save_user_locator(chat_id, locator)
+        states_chain_length = 0
+        while next_locator:
+            states_chain_length += 1
+            if states_chain_length >= MAX_STATES_CHAIN_LEN:
                 break
-            next_state_locator = self.switch_state(next_state_locator, update, chat_id)
-            states_chain_counter += 1
-        self.session_repository.save_user_history(chat_id, locator)
+            next_locator = self.switch_state(next_locator, update)
 
-    def switch_state(self, next_state_locator: Locator, update: Update, chat_id: int) -> Locator | None:
-        self.session_repository.save_user_locator(chat_id, next_state_locator)
-        print(f'Switching to state with locator: {next_state_locator}')
-        next_state = self.router.restore_state(next_state_locator, chat_id)
-        print(f'State: {next_state.__class__.__name__}')
-        next_next_state_locator = next_state.enter_state(update)
-        return next_next_state_locator
+    def get_locator_from_command(self, update) -> Locator | None:
+        if not update.message:
+            return
+        if locator := self.commands_map.get(update.message.text):
+            return locator
+
+    def switch_state(self, state_locator: Locator, update: Update) -> Locator | None:
+        self.session_repository.save_user_locator(update.chat_id, state_locator)
+        self.session_repository.save_user_history(update.chat_id, state_locator)
+        print(f'Switching to state with locator: {state_locator}')
+        state = self.state_router.restore_state(state_locator, update.chat_id)
+        print(f'State: {state.__class__.__name__}')
+        next_state_locator = state.enter_state(update)
+        return next_state_locator
