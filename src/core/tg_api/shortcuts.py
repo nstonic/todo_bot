@@ -2,6 +2,10 @@ from collections.abc import Sequence
 from typing import Literal
 
 from .exceptions import TgHttpStatusError
+from .tg_methods import (
+    SendMessageRequest,
+    EditMessageReplyMarkupRequest,
+)
 from .tg_types import (
     KeyboardButton,
     InlineKeyboardMarkup,
@@ -10,16 +14,9 @@ from .tg_types import (
     InlineKeyboardButton,
     MessageEntity,
 )
-from .tg_methods import (
-    SendMessageRequest,
-    EditMessageReplyMarkupRequest,
-)
-
-InlineButtons = Sequence[Sequence[str, str]]
-ReplyButtons = Sequence[str]
 
 
-def generate_inline_buttons(*buttons: InlineButtons) -> list[list[InlineKeyboardButton]]:
+def generate_inline_buttons(*buttons: Sequence[Sequence[str, str]]) -> list[list[InlineKeyboardButton]]:
     keyboard = []
     for line in buttons:
         buttons_line = []
@@ -29,7 +26,7 @@ def generate_inline_buttons(*buttons: InlineButtons) -> list[list[InlineKeyboard
     return keyboard
 
 
-def generate_reply_buttons(*buttons: ReplyButtons) -> list[list[KeyboardButton]]:
+def generate_reply_buttons(*buttons: Sequence[str]) -> list[list[KeyboardButton]]:
     keyboard = []
     for line in buttons:
         buttons_line = []
