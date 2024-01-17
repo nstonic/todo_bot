@@ -12,6 +12,7 @@ class MemorySessionRepository(BaseSessionRepository):
             self[user_id] = {
                 'locator': locator,
                 'history': [],
+                'context': {},
             }
         else:
             self[user_id]['locator'] = locator
@@ -28,3 +29,6 @@ class MemorySessionRepository(BaseSessionRepository):
 
     def get_user_history(self, user_id: int) -> list[Locator]:
         return self.get(user_id, {}).get('history', [])
+
+    def get_user_context(self, user_id: int) -> dict:
+        return self.get(user_id, {}).get('context', {})

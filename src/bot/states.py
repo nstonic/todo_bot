@@ -96,6 +96,7 @@ class StartState(BaseState):
             case callback_data if 'page#' in callback_data:
                 params = {
                     'edit_message_id': update.callback_query.message.message_id,
+                    'show_done': self.show_done,
                 }
                 _, page_number = callback_data.rsplit('#', 1)
                 if page_number.isdigit():
@@ -109,6 +110,9 @@ class StartState(BaseState):
                 return Locator('/', {'switch_page': True})
 
     def exit_state(self, update: Update) -> None:
+        if not update.callback_query:
+            return
+
         if self.show_done:
             todos = Todo.get_all_for_user(self.chat_id)
         else:
@@ -138,14 +142,16 @@ class StartState(BaseState):
 
 
 @router.register('/todo/title/')
-class AddTodoTitleState(ClassicState):
+class AddTodoTitleState(DestroyInlineKeyboardMixin, ClassicState):
 
     def enter_state(self, update: Update) -> Locator | None:
-        send_text_message(
+        message = send_text_message(
             text='Как назовем задачу?',
             chat_id=self.chat_id,
             keyboard=[[InlineKeyboardButton(text='Отмена', callback_data='cancel')]],
         )
+        context = session_repository.get_user_context(update.chat_id)
+        context['last_message_id'] = message.message_id
 
     def handle_text_message(self, message_text: str) -> Locator:
         return Locator('/todo/content/', {'title': message_text})
@@ -154,17 +160,29 @@ class AddTodoTitleState(ClassicState):
         if callback_data == 'cancel':
             return Locator('/')
 
+    def exit_state(self, update: Update) -> None:
+        super().exit_state(update)
+        context = session_repository.get_user_context(update.chat_id)
+        if message_id := context.pop('last_message_id', None):
+            edit_inline_keyboard(
+                update.chat_id,
+                message_id,
+                keyboard=None,
+            )
+
 
 @router.register('/todo/content/')
-class AddTodoContentState(ClassicState):
+class AddTodoContentState(DestroyInlineKeyboardMixin, ClassicState):
     title: str
 
     def enter_state(self, update: Update) -> Locator | None:
-        send_text_message(
+        message = send_text_message(
             text='ОК. Опиши суть задачи.',
             chat_id=self.chat_id,
             keyboard=[[InlineKeyboardButton(text='Отмена', callback_data='cancel')]],
         )
+        context = session_repository.get_user_context(update.chat_id)
+        context['last_message_id'] = message.message_id
 
     def handle_text_message(self, message_text: str) -> Locator:
         Todo.create_for_user(
@@ -181,6 +199,16 @@ class AddTodoContentState(ClassicState):
     def handle_inline_buttons(self, callback_data: str) -> Locator | None:
         if callback_data == 'cancel':
             return Locator('/')
+
+    def exit_state(self, update: Update) -> None:
+        super().exit_state(update)
+        context = session_repository.get_user_context(update.chat_id)
+        if message_id := context.pop('last_message_id', None):
+            edit_inline_keyboard(
+                update.chat_id,
+                message_id,
+                keyboard=None,
+            )
 
 
 @router.register('/todo/')
@@ -267,15 +295,17 @@ class TodoState(DestroyInlineKeyboardMixin, BaseState):
 
 
 @router.register('/todo/edit/title/')
-class EditTodoTitleState(ClassicState):
+class EditTodoTitleState(DestroyInlineKeyboardMixin, ClassicState):
     todo_id: int
 
     def enter_state(self, update: Update) -> Locator | None:
-        send_text_message(
+        message = send_text_message(
             'Как переименовать задачу?',
             update.chat_id,
             keyboard=[[InlineKeyboardButton(text='Отмена', callback_data='cancel')]],
         )
+        context = session_repository.get_user_context(update.chat_id)
+        context['last_message_id'] = message.message_id
 
     def handle_text_message(self, message_text: str) -> Locator | None:
         Todo.update(todo_id=self.todo_id, title=message_text)
@@ -285,17 +315,29 @@ class EditTodoTitleState(ClassicState):
         if callback_data == 'cancel':
             return Locator('/todo/', {'todo_id': self.todo_id})
 
+    def exit_state(self, update: Update) -> None:
+        super().exit_state(update)
+        context = session_repository.get_user_context(update.chat_id)
+        if message_id := context.pop('last_message_id', None):
+            edit_inline_keyboard(
+                update.chat_id,
+                message_id,
+                keyboard=None,
+            )
+
 
 @router.register('/todo/edit/content/')
-class EditTodoContentState(ClassicState):
+class EditTodoContentState(DestroyInlineKeyboardMixin, ClassicState):
     todo_id: int
 
     def enter_state(self, update: Update) -> Locator | None:
-        send_text_message(
+        message = send_text_message(
             'Пришли новое описание',
             update.chat_id,
             keyboard=[[InlineKeyboardButton(text='Отмена', callback_data='cancel')]],
         )
+        context = session_repository.get_user_context(update.chat_id)
+        context['last_message_id'] = message.message_id
 
     def handle_text_message(self, message_text: str) -> Locator | None:
         Todo.update(todo_id=self.todo_id, content=message_text)
@@ -304,3 +346,13 @@ class EditTodoContentState(ClassicState):
     def handle_inline_buttons(self, callback_data: str) -> Locator | None:
         if callback_data == 'cancel':
             return Locator('/todo/', {'todo_id': self.todo_id})
+
+    def exit_state(self, update: Update) -> None:
+        super().exit_state(update)
+        context = session_repository.get_user_context(update.chat_id)
+        if message_id := context.pop('last_message_id', None):
+            edit_inline_keyboard(
+                update.chat_id,
+                message_id,
+                keyboard=None,
+            )

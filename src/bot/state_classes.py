@@ -18,16 +18,12 @@ class ClassicState(BaseState):
 
 
 class DestroyInlineKeyboardMixin:
+    """Удаляет клавиатуру при выходе из состояния при нажатии на кнопку"""
     def exit_state(self, update: Update) -> None:
-        if update.message:
+        if update.callback_query:
+            message_id = update.callback_query.message.message_id
             edit_inline_keyboard(
-                chat_id=self.chat_id,
-                message_id=update.message.message_id,
-                keyboard=None,
-            )
-        elif update.callback_query:
-            edit_inline_keyboard(
-                chat_id=self.chat_id,
-                message_id=update.callback_query.message.message_id,
+                chat_id=update.chat_id,
+                message_id=message_id,
                 keyboard=None,
             )
