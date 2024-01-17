@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from typing import Union, Literal
+from typing import Literal
 
 from .exceptions import TgHttpStatusError
 from .tg_types import (
@@ -14,11 +14,6 @@ from .tg_methods import (
     SendMessageRequest,
     EditMessageReplyMarkupRequest,
 )
-
-Keyboard = Union[
-    list[list[InlineKeyboardButton]],
-    list[list[KeyboardButton]]
-]
 
 InlineButtons = Sequence[Sequence[str, str]]
 ReplyButtons = Sequence[str]
@@ -47,7 +42,7 @@ def generate_reply_buttons(*buttons: ReplyButtons) -> list[list[KeyboardButton]]
 def send_text_message(
         text: str,
         chat_id: int,
-        keyboard: Keyboard | None = None,
+        keyboard: Sequence[Sequence[InlineKeyboardButton]] | Sequence[Sequence[KeyboardButton]] | None = None,
         parse_mode: Literal['Markdown', 'MarkdownV2', 'HTML'] | None = None,
         entities: list[MessageEntity] | None = None,
         disable_web_page_preview: bool | None = None,
