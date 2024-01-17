@@ -13,9 +13,8 @@ from core import (
 from core.tg_api import Update, InlineKeyboardButton, EditMessageTextRequest
 from core.tg_api.shortcuts import (
     send_text_message,
-    edit_inline_keyboard,
+    edit_inline_keyboard, generate_inline_buttons,
 )
-from .helpers import generate_inline_buttons
 from .repositories import Todo, MemorySessionRepository
 from .state_classes import ClassicState, DestroyInlineKeyboardMixin
 

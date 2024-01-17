@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from typing import Union, Literal
 
 from .exceptions import TgHttpStatusError
@@ -18,6 +19,29 @@ Keyboard = Union[
     list[list[InlineKeyboardButton]],
     list[list[KeyboardButton]]
 ]
+
+InlineButtons = Sequence[Sequence[str, str]]
+ReplyButtons = Sequence[str]
+
+
+def generate_inline_buttons(*buttons: InlineButtons) -> list[list[InlineKeyboardButton]]:
+    keyboard = []
+    for line in buttons:
+        buttons_line = []
+        for text, callback_data in line:
+            buttons_line.append(InlineKeyboardButton(text=text, callback_data=callback_data))
+        keyboard.append(buttons_line)
+    return keyboard
+
+
+def generate_reply_buttons(*buttons: ReplyButtons) -> list[list[KeyboardButton]]:
+    keyboard = []
+    for line in buttons:
+        buttons_line = []
+        for text, callback_data in line:
+            buttons_line.append(KeyboardButton(text=text))
+        keyboard.append(buttons_line)
+    return keyboard
 
 
 def send_text_message(
