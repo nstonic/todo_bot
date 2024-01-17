@@ -100,12 +100,7 @@ class StateMachine(BaseModel):
         if next_locator and locator.state_name != next_locator.state_name:
             state.exit_state(update)
 
-        states_chain_length = 0
-        while next_locator:
-            states_chain_length += 1
-            if states_chain_length >= MAX_STATES_CHAIN_LEN:
-                break
-            next_locator = self.switch_state(next_locator, update)
+        self.switch_state(next_locator, update)
 
     def get_locator_from_command(self, update) -> Locator | None:
         if not update.message:
@@ -113,10 +108,17 @@ class StateMachine(BaseModel):
         if locator := self.commands_map.get(update.message.text):
             return locator
 
-    def switch_state(self, state_locator: Locator, update: Update) -> Locator | None:
-        self.session_repository.save_user_locator(update.chat_id, state_locator)
-        print(f'Switching to state with locator: {state_locator}')
-        state = self.state_router.restore_state(state_locator, update.chat_id)
-        print(f'State: {state.__class__.__name__}')
-        next_state_locator = state.enter_state(update)
-        return next_state_locator
+    def switch_state(self, state_locator: Locator, update: Update) -> None:
+        states_chain_length = 0
+        while state_locator:
+            self.session_repository.save_user_locator(update.chat_id, state_locator)
+            states_chain_length += 1
+            if states_chain_length >= MAX_STATES_CHAIN_LEN:
+                break
+            print(f'Switching to state with locator: {state_locator}')
+            state = self.state_router.restore_state(state_locator, update.chat_id)
+            print(f'State: {state.__class__.__name__}')
+            next_state_locator = state.enter_state(update)
+            if next_state_locator and state_locator.state_name != next_state_locator.state_name:
+                state.exit_state(update)
+            state_locator = next_state_locator
