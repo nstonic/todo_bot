@@ -15,6 +15,7 @@ class MemorySessionRepository(BaseSessionRepository):
             }
         else:
             self[user_id]['locator'] = locator
+        self.save_user_history(user_id, locator)
 
     def get_locator_by_user_id(self, user_id: int) -> Locator | None:
         return self.get(user_id, {}).get('locator')

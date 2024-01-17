@@ -73,14 +73,6 @@ class BaseSessionRepository(dict, ABC):
     def get_locator_by_user_id(self, user_id: int) -> Locator | None:
         pass
 
-    @abstractmethod
-    def save_user_history(self, user_id: int, locator: Locator) -> None:
-        pass
-
-    @abstractmethod
-    def get_user_history(self, user_id: int) -> list[Locator]:
-        pass
-
 
 @final
 class StateMachine(BaseModel):
@@ -123,7 +115,6 @@ class StateMachine(BaseModel):
 
     def switch_state(self, state_locator: Locator, update: Update) -> Locator | None:
         self.session_repository.save_user_locator(update.chat_id, state_locator)
-        self.session_repository.save_user_history(update.chat_id, state_locator)
         print(f'Switching to state with locator: {state_locator}')
         state = self.state_router.restore_state(state_locator, update.chat_id)
         print(f'State: {state.__class__.__name__}')
