@@ -144,10 +144,15 @@ class AddTodoTitleState(ClassicState):
         send_text_message(
             text='Как назовем задачу?',
             chat_id=self.chat_id,
+            keyboard=[[InlineKeyboardButton(text='Отмена', callback_data='cancel')]],
         )
 
     def handle_text_message(self, message_text: str) -> Locator:
         return Locator('/todo/content/', {'title': message_text})
+
+    def handle_inline_buttons(self, callback_data: str) -> Locator | None:
+        if callback_data == 'cancel':
+            return Locator('/')
 
 
 @router.register('/todo/content/')
@@ -158,6 +163,7 @@ class AddTodoContentState(ClassicState):
         send_text_message(
             text='ОК. Опиши суть задачи.',
             chat_id=self.chat_id,
+            keyboard=[[InlineKeyboardButton(text='Отмена', callback_data='cancel')]],
         )
 
     def handle_text_message(self, message_text: str) -> Locator:
@@ -171,6 +177,10 @@ class AddTodoContentState(ClassicState):
             chat_id=self.chat_id,
         )
         return Locator('/')
+
+    def handle_inline_buttons(self, callback_data: str) -> Locator | None:
+        if callback_data == 'cancel':
+            return Locator('/')
 
 
 @router.register('/todo/')
@@ -264,11 +274,16 @@ class EditTodoTitleState(ClassicState):
         send_text_message(
             'Как переименовать задачу?',
             update.chat_id,
+            keyboard=[[InlineKeyboardButton(text='Отмена', callback_data='cancel')]],
         )
 
     def handle_text_message(self, message_text: str) -> Locator | None:
         Todo.update(todo_id=self.todo_id, title=message_text)
         return Locator('/todo/', {'todo_id': self.todo_id})
+
+    def handle_inline_buttons(self, callback_data: str) -> Locator | None:
+        if callback_data == 'cancel':
+            return Locator('/todo/', {'todo_id': self.todo_id})
 
 
 @router.register('/todo/edit/content/')
@@ -279,8 +294,13 @@ class EditTodoContentState(ClassicState):
         send_text_message(
             'Пришли новое описание',
             update.chat_id,
+            keyboard=[[InlineKeyboardButton(text='Отмена', callback_data='cancel')]],
         )
 
     def handle_text_message(self, message_text: str) -> Locator | None:
         Todo.update(todo_id=self.todo_id, content=message_text)
         return Locator('/todo/', {'todo_id': self.todo_id})
+
+    def handle_inline_buttons(self, callback_data: str) -> Locator | None:
+        if callback_data == 'cancel':
+            return Locator('/todo/', {'todo_id': self.todo_id})
