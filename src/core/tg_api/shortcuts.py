@@ -4,7 +4,7 @@ from typing import Literal
 from .exceptions import TgHttpStatusError
 from .tg_methods import (
     SendMessageRequest,
-    EditMessageReplyMarkupRequest,
+    EditMessageReplyMarkupRequest, EditMessageTextRequest,
 )
 from .tg_types import (
     KeyboardButton,
@@ -15,13 +15,16 @@ from .tg_types import (
     MessageEntity,
 )
 
+InlineKeyboard = Sequence[Sequence[InlineKeyboardButton | dict[str, str]]]
+ReplyKeyboard = Sequence[Sequence[KeyboardButton | dict[str, str]]]
+
 
 def generate_inline_buttons(*buttons: Sequence[Sequence[str, str]]) -> list[list[InlineKeyboardButton]]:
     keyboard = []
     for line in buttons:
         buttons_line = []
         for text, callback_data in line:
-            buttons_line.append(InlineKeyboardButton(text=text, callback_data=callback_data))
+            buttons_line.append(InlineKeyboardButton(text, callback_data=callback_data))
         keyboard.append(buttons_line)
     return keyboard
 
@@ -31,7 +34,7 @@ def generate_reply_buttons(*buttons: Sequence[str]) -> list[list[KeyboardButton]
     for line in buttons:
         buttons_line = []
         for text, callback_data in line:
-            buttons_line.append(KeyboardButton(text=text))
+            buttons_line.append(KeyboardButton(text))
         keyboard.append(buttons_line)
     return keyboard
 
@@ -39,7 +42,7 @@ def generate_reply_buttons(*buttons: Sequence[str]) -> list[list[KeyboardButton]
 def send_text_message(
         text: str,
         chat_id: int,
-        keyboard: Sequence[Sequence[InlineKeyboardButton]] | Sequence[Sequence[KeyboardButton]] | None = None,
+        keyboard: InlineKeyboard | ReplyKeyboard | None = None,
         parse_mode: Literal['Markdown', 'MarkdownV2', 'HTML'] | None = None,
         entities: list[MessageEntity] | None = None,
         disable_web_page_preview: bool | None = None,
@@ -50,9 +53,9 @@ def send_text_message(
 ) -> Message:
     match keyboard:
         case [[InlineKeyboardButton(), *_], *_]:
-            reply_markup = InlineKeyboardMarkup(inline_keyboard=keyboard)
+            reply_markup = InlineKeyboardMarkup(keyboard)
         case [[KeyboardButton(), *_], *_]:
-            reply_markup = ReplyKeyboardMarkup(inline_keyboard=keyboard)
+            reply_markup = ReplyKeyboardMarkup(keyboard)
         case _:
             reply_markup = None
     return SendMessageRequest(
@@ -74,13 +77,12 @@ def edit_inline_keyboard(
         message_id: int,
         keyboard: list[list[InlineKeyboardButton]] | None,
         *,
-        ignore_exactly_the_same=False,
-        ignore_to_old_message=False,
+        ignore_to_old_message=True,
 ) -> Message | None:
     if keyboard is None:
-        reply_markup = InlineKeyboardMarkup(inline_keyboard=[[]])
+        reply_markup = InlineKeyboardMarkup([[]])
     else:
-        reply_markup = InlineKeyboardMarkup(inline_keyboard=keyboard)
+        reply_markup = InlineKeyboardMarkup(keyboard)
 
     try:
         message = EditMessageReplyMarkupRequest(
@@ -89,7 +91,46 @@ def edit_inline_keyboard(
             reply_markup=reply_markup,
         ).send().result
     except TgHttpStatusError as ex:
-        if ignore_exactly_the_same and 'reply markup are exactly the same' in str(ex):
+        if ignore_to_old_message and 'too much time has passed since its creation' in str(ex):
+            return
+    else:
+        return message
+
+
+def edit_text_message(
+        chat_id: int,
+        message_id: int,
+        text: str,
+        keyboard: Sequence[Sequence[InlineKeyboardButton]] | Sequence[Sequence[KeyboardButton]] | None = None,
+        parse_mode: Literal['Markdown', 'MarkdownV2', 'HTML'] | None = None,
+        inline_message_id: str | None = None,
+        entities: list[MessageEntity] | None = None,
+        disable_web_page_preview: bool | None = None,
+        *,
+        ignore_exactly_the_same=True,
+        ignore_to_old_message=True,
+) -> Message | None:
+    match keyboard:
+        case [[InlineKeyboardButton(), *_], *_]:
+            reply_markup = InlineKeyboardMarkup(keyboard)
+        case [[KeyboardButton(), *_], *_]:
+            reply_markup = ReplyKeyboardMarkup(keyboard)
+        case _:
+            reply_markup = None
+
+    try:
+        message = EditMessageTextRequest(
+            chat_id=chat_id,
+            message_id=message_id,
+            text=text,
+            reply_markup=reply_markup,
+            parse_mode=parse_mode,
+            inline_message_id=inline_message_id,
+            entities=entities,
+            disable_web_page_preview=disable_web_page_preview,
+        ).send().result
+    except TgHttpStatusError as ex:
+        if ignore_exactly_the_same and 'exactly the same' in str(ex):
             return
         if ignore_to_old_message and 'too much time has passed since its creation' in str(ex):
             return

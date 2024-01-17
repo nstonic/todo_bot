@@ -34,7 +34,7 @@ class Paginator:
 
         page_keyboard = [
             [InlineKeyboardButton(
-                text=self.button_text_getter(item),
+                self.button_text_getter(item),
                 callback_data=self.button_callback_data_getter(item)
             )]
             for item in self.pages[page_number - 1]
@@ -42,22 +42,23 @@ class Paginator:
         if self.is_paginated:
             pagination_keyboard = [
                 InlineKeyboardButton(
-                    text='1', callback_data=f'{self.page_callback_data_prefix}#1'
+                    '1',
+                    callback_data=f'{self.page_callback_data_prefix}#1'
                 ),
                 InlineKeyboardButton(
-                    text='<',
+                    '<',
                     callback_data=f'{self.page_callback_data_prefix}#{prev_page_number}'
                 ),
                 InlineKeyboardButton(
-                    text=str(page_number),
+                    str(page_number),
                     callback_data=f'{self.page_callback_data_prefix}#{page_number}'
                 ),
                 InlineKeyboardButton(
-                    text='>',
+                    '>',
                     callback_data=f'{self.page_callback_data_prefix}#{next_page_number}'
                 ),
                 InlineKeyboardButton(
-                    text=str(self.total_pages),
+                    str(self.total_pages),
                     callback_data=f'{self.page_callback_data_prefix}#{self.total_pages}'
                 )
             ]

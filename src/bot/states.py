@@ -42,10 +42,10 @@ class StartState(BaseState):
     def enter_state(self, update: Update) -> Locator | None:
         if self.show_done:
             todos = Todo.get_all_for_user(self.chat_id)
-            show_done_button = InlineKeyboardButton(text='Скрыть сделанные', callback_data='show_active')
+            show_done_button = InlineKeyboardButton('Скрыть сделанные', callback_data='show_active')
         else:
             todos = Todo.get_active_for_user(self.chat_id)
-            show_done_button = InlineKeyboardButton(text='Показать все', callback_data='show_done')
+            show_done_button = InlineKeyboardButton('Показать все', callback_data='show_done')
 
         if not todos:
             text = 'Привет!\nУ тебя еще нет задач. Добавь первую.'
@@ -63,7 +63,7 @@ class StartState(BaseState):
             ).get_keyboard(self.page_number)
 
         keyboard.append([
-            InlineKeyboardButton(text='Добавить', callback_data='add'),
+            InlineKeyboardButton('Добавить', callback_data='add'),
             show_done_button,
         ])
 
@@ -72,7 +72,6 @@ class StartState(BaseState):
                 self.chat_id,
                 self.edit_message_id,
                 keyboard,
-                ignore_exactly_the_same=True,
             )
         else:
             send_text_message(
@@ -147,7 +146,7 @@ class AddTodoTitleState(DestroyInlineKeyboardMixin, ClassicState):
         message = send_text_message(
             text='Как назовем задачу?',
             chat_id=self.chat_id,
-            keyboard=[[InlineKeyboardButton(text='Отмена', callback_data='cancel')]],
+            keyboard=[[InlineKeyboardButton('Отмена', callback_data='cancel')]],
         )
         context = session_repository.get_user_context(update.chat_id)
         context['last_message_id'] = message.message_id
@@ -178,7 +177,7 @@ class AddTodoContentState(DestroyInlineKeyboardMixin, ClassicState):
         message = send_text_message(
             text='ОК. Опиши суть задачи.',
             chat_id=self.chat_id,
-            keyboard=[[InlineKeyboardButton(text='Отмена', callback_data='cancel')]],
+            keyboard=[[InlineKeyboardButton('Отмена', callback_data='cancel')]],
         )
         context = session_repository.get_user_context(update.chat_id)
         context['last_message_id'] = message.message_id
@@ -301,7 +300,7 @@ class EditTodoTitleState(DestroyInlineKeyboardMixin, ClassicState):
         message = send_text_message(
             'Как переименовать задачу?',
             update.chat_id,
-            keyboard=[[InlineKeyboardButton(text='Отмена', callback_data='cancel')]],
+            keyboard=[[InlineKeyboardButton('Отмена', callback_data='cancel')]],
         )
         context = session_repository.get_user_context(update.chat_id)
         context['last_message_id'] = message.message_id
@@ -333,7 +332,7 @@ class EditTodoContentState(DestroyInlineKeyboardMixin, ClassicState):
         message = send_text_message(
             'Пришли новое описание',
             update.chat_id,
-            keyboard=[[InlineKeyboardButton(text='Отмена', callback_data='cancel')]],
+            keyboard=[[InlineKeyboardButton('Отмена', callback_data='cancel')]],
         )
         context = session_repository.get_user_context(update.chat_id)
         context['last_message_id'] = message.message_id

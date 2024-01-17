@@ -195,15 +195,15 @@ class SendMessageRequest(BaseTgRequest):
     See here https://core.telegram.org/bots/api#sendmessage
     """
 
-    chat_id: int = Field(
-        description=dedent("""\
-            Unique identifier for the target chat or username of the target channel (in the format @channelusername).
-        """),
-    )
     text: str = Field(
         min_length=1,
         max_length=4096,
         description="Text of the message to be sent, 1-4096 characters after entities parsing.",
+    )
+    chat_id: int = Field(
+        description=dedent("""\
+            Unique identifier for the target chat or username of the target channel (in the format @channelusername).
+        """),
     )
     parse_mode: tg_types.ParseMode | None = Field(
         default=None,
@@ -250,6 +250,12 @@ class SendMessageRequest(BaseTgRequest):
             instructions to remove reply keyboard or to force a reply from the user.
         """),
     )
+
+    def __init__(self, *args, **kwargs):
+        if len(args) == 1:
+            super().__init__(text=args[0], **kwargs)
+        else:
+            super().__init__(*args, **kwargs)
 
     class Config:
         anystr_strip_whitespace = True

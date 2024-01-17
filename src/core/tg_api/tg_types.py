@@ -295,6 +295,12 @@ class KeyboardButton(BaseModel, ValidableMixin):
         """),
     )
 
+    def __init__(self, *args, **kwargs):
+        if len(args) == 1:
+            super().__init__(text=args[0], **kwargs)
+        else:
+            super().__init__(*args, **kwargs)
+
 
 class ReplyKeyboardMarkup(BaseModel, ValidableMixin):
     """This model represents a custom keyboard with reply options.
@@ -348,6 +354,12 @@ class ReplyKeyboardMarkup(BaseModel, ValidableMixin):
             select the new language. Other users in the group don't see the keyboard.
         """),
     )
+
+    def __init__(self, *args, **kwargs):
+        if len(args) == 1:
+            super().__init__(keyboard=args[0], **kwargs)
+        else:
+            super().__init__(*args, **kwargs)
 
 
 class ReplyKeyboardRemove(BaseModel, ValidableMixin):
@@ -491,6 +503,12 @@ class InlineKeyboardButton(BaseModel, ValidableMixin):
         """),
     )
 
+    def __init__(self, *args, **kwargs):
+        if len(args) == 1:
+            super().__init__(text=args[0], **kwargs)
+        else:
+            super().__init__(*args, **kwargs)
+
 
 class InlineKeyboardMarkup(BaseModel, ValidableMixin):
     """This model represents an inline keyboard that appears right next to the message it belongs to.
@@ -501,6 +519,12 @@ class InlineKeyboardMarkup(BaseModel, ValidableMixin):
     inline_keyboard: list[list[InlineKeyboardButton]] = Field(
         description="Array of button rows, each represented by an Array of InlineKeyboardButton objects.",
     )
+
+    def __init__(self, *args, **kwargs):
+        if len(args) == 1:
+            super().__init__(inline_keyboard=args[0], **kwargs)
+        else:
+            super().__init__(*args, **kwargs)
 
 
 class Invoice(BaseModel, ValidableMixin):
