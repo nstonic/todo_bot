@@ -75,6 +75,7 @@ def edit_inline_keyboard(
         keyboard: list[list[InlineKeyboardButton]] | None,
         *,
         ignore_exactly_the_same=False,
+        ignore_to_old_message=False,
 ) -> Message | None:
     if keyboard is None:
         reply_markup = InlineKeyboardMarkup(inline_keyboard=[[]])
@@ -90,7 +91,7 @@ def edit_inline_keyboard(
     except TgHttpStatusError as ex:
         if ignore_exactly_the_same and 'exactly the same' in str(ex):
             return
-        if 'Message is not modified' in str(ex):
+        if ignore_to_old_message and 'Message is not modified' in str(ex):
             return
     else:
         return message
