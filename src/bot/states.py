@@ -1,3 +1,6 @@
+import textwrap
+from typing import Literal
+
 from core import (
     StateRouter,
     StateMachine,
@@ -10,6 +13,7 @@ from core.tg_api.shortcuts import (
     send_text_message,
     edit_inline_keyboard,
 )
+from .helpers import generate_inline_buttons
 from .repositories import Todo, MemorySessionRepository
 from .state_classes import ClassicState, DestroyInlineKeyboardMixin
 
@@ -48,7 +52,10 @@ class StartState(BaseState, DestroyInlineKeyboardMixin):
             text = 'Привет!\nВот список твоих текущих задач:'
             keyboard = Paginator(
                 todos,
-                button_text_getter=lambda todo: todo.title,
+                button_text_getter=lambda todo: textwrap.shorten(
+                    str(todo), 40,
+                    placeholder='...',
+                ),
                 button_callback_data_getter=lambda todo: todo.id,
                 page_size=6,
             ).get_keyboard(self.page_number)
@@ -74,11 +81,11 @@ class StartState(BaseState, DestroyInlineKeyboardMixin):
 
     def process(self, update: Update) -> Locator | None:
         if not update.callback_query:
-            return 
-        
+            return
+
         match update.callback_query.data:
             case 'add':
-                return Locator('/add_todo/title/')
+                return Locator('/todo/title/')
             case 'show_done':
                 return Locator('/', {'show_done': True})
             case 'show_active':
@@ -94,12 +101,12 @@ class StartState(BaseState, DestroyInlineKeyboardMixin):
                     params['page_number'] = 1
                 return Locator('/', params)
             case callback_data if callback_data.isdigit():
-                return Locator('/todo/edit/', {'todo_id': int(callback_data)})
+                return Locator('/todo/', {'todo_id': int(callback_data)})
             case _:
                 return Locator('/', {'switch_page': True})
 
 
-@router.register('/add_todo/title/')
+@router.register('/todo/title/')
 class AddTodoTitleState(ClassicState):
 
     def enter_state(self, update: Update) -> Locator | None:
@@ -109,10 +116,10 @@ class AddTodoTitleState(ClassicState):
         )
 
     def handle_text_message(self, message_text: str) -> Locator:
-        return Locator('/add_todo/content/', {'title': message_text})
+        return Locator('/todo/content/', {'title': message_text})
 
 
-@router.register('/add_todo/content/')
+@router.register('/todo/content/')
 class AddTodoContentState(ClassicState):
     title: str
 
@@ -139,8 +146,8 @@ class AddTodoContentState(ClassicState):
         return Locator('/')
 
 
-@router.register('/todo/edit/')
-class ShowTodoState(ClassicState, DestroyInlineKeyboardMixin):
+@router.register('/todo/')
+class ShowTodoState(BaseState, DestroyInlineKeyboardMixin):
     todo_id: int
 
     def enter_state(self, update: Update) -> Locator | None:
@@ -148,24 +155,11 @@ class ShowTodoState(ClassicState, DestroyInlineKeyboardMixin):
         if not todo:
             return Locator('/')
 
-        text = f'<b>{todo.title}</b>\n\n{todo.content}'
-        keyboard = [
-            [
-                InlineKeyboardButton(text='Сделано', callback_data='done'),
-            ],
-            [
-                InlineKeyboardButton(text='Редактировать', callback_data='edit'),
-                InlineKeyboardButton(text='Удалить', callback_data='delete'),
-            ],
-            [
-                InlineKeyboardButton(text='Вернуться к списку', callback_data='back'),
-            ],
-
-        ]
+        text = f'<b>{todo}</b>\n\n{todo.content}'
         send_text_message(
             text,
             update.chat_id,
-            keyboard,
+            self.get_keyboard('normal'),
             parse_mode='HTML'
         )
 
@@ -177,12 +171,49 @@ class ShowTodoState(ClassicState, DestroyInlineKeyboardMixin):
         Todo.delete(self.todo_id)
         return Locator('/')
 
-    def handle_inline_buttons(self, callback_data: str) -> Locator | None:
-        match callback_data:
+    @staticmethod
+    def get_keyboard(mode: Literal['normal', 'edit']):
+        if mode == 'edit':
+            return generate_inline_buttons(
+                [('Редактировать название', 'edit_title'), ('Редактировать содержимое', 'edit_content')],
+                [('Отмена', 'cancel_edit')],
+            )
+        else:
+            return generate_inline_buttons(
+                [('Сделано', 'done')],
+                [('Редактировать', 'edit'), ('Удалить', 'delete')],
+                [('Вернуться к списку', 'back')],
+            )
+
+    def switch_keyboard_to_edit_mode(self, update: Update):
+        edit_inline_keyboard(
+            update.chat_id,
+            update.callback_query.message.message_id,
+            self.get_keyboard('edit'),
+        )
+
+    def switch_keyboard_to_normal_mode(self, update: Update):
+        edit_inline_keyboard(
+            update.chat_id,
+            update.callback_query.message.message_id,
+            self.get_keyboard('normal'),
+        )
+
+    def process(self, update: Update) -> Locator | None:
+        if not update.callback_query:
+            return
+
+        match update.callback_query.data:
             case 'done':
                 return self.mark_todo_as_done()
             case 'edit':
-                return Locator('/todo/edit/', {'todo_id': self.todo_id})
+                self.switch_keyboard_to_edit_mode(update)
+            case 'edit_title':
+                return Locator('/todo/edit/title/', {'todo_id': self.todo_id})
+            case 'edit_content':
+                return Locator('/todo/edit/content/', {'todo_id': self.todo_id})
+            case 'cancel_edit':
+                self.switch_keyboard_to_normal_mode(update)
             case 'delete':
                 return self.delete_todo()
             case 'back':

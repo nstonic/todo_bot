@@ -25,6 +25,12 @@ class Todo(Base):
     is_done: Mapped[bool] = mapped_column(Boolean)
     tg_user_id: Mapped[int] = mapped_column(BigInteger)
 
+    def __str__(self):
+        if self.is_done:
+            return f'[Сделано] {self.title}'
+        else:
+            return self.title
+
     @classmethod
     def get_by_id(cls, todo_id: int):
         return db_session.query(Todo).filter_by(id=todo_id).first()
