@@ -89,9 +89,9 @@ def edit_inline_keyboard(
             reply_markup=reply_markup,
         ).send().result
     except TgHttpStatusError as ex:
-        if ignore_exactly_the_same and 'exactly the same' in str(ex):
+        if ignore_exactly_the_same and 'reply markup are exactly the same' in str(ex):
             return
-        if ignore_to_old_message and 'Message is not modified' in str(ex):
+        if ignore_to_old_message and 'too much time has passed since its creation' in str(ex):
             return
     else:
         return message
