@@ -19,9 +19,15 @@ class ClassicState(BaseState):
 
 class DestroyInlineKeyboardMixin:
     def exit_state(self, update: Update) -> None:
-        super().exit_state(update)
-        edit_inline_keyboard(
-            chat_id=self.chat_id,
-            message_id=update.message.message_id,
-            keyboard=None,
-        )
+        if update.message:
+            edit_inline_keyboard(
+                chat_id=self.chat_id,
+                message_id=update.message.message_id,
+                keyboard=None,
+            )
+        elif update.callback_query:
+            edit_inline_keyboard(
+                chat_id=self.chat_id,
+                message_id=update.callback_query.message.message_id,
+                keyboard=None,
+            )

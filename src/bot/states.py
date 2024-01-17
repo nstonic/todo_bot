@@ -1,6 +1,8 @@
 import textwrap
 from typing import Literal
 
+import more_itertools
+
 from core import (
     StateRouter,
     StateMachine,
@@ -8,7 +10,7 @@ from core import (
     Paginator,
     BaseState,
 )
-from core.tg_api import Update, InlineKeyboardButton
+from core.tg_api import Update, InlineKeyboardButton, EditMessageTextRequest
 from core.tg_api.shortcuts import (
     send_text_message,
     edit_inline_keyboard,
@@ -32,10 +34,11 @@ state_machine = StateMachine(
 
 
 @router.register('/')
-class StartState(BaseState, DestroyInlineKeyboardMixin):
+class StartState(BaseState):
     page_number: int = 1
     show_done: bool = False
     edit_message_id: int | None = None
+    page_size: int = 6
 
     def enter_state(self, update: Update) -> Locator | None:
         if self.show_done:
@@ -57,7 +60,7 @@ class StartState(BaseState, DestroyInlineKeyboardMixin):
                     placeholder='...',
                 ),
                 button_callback_data_getter=lambda todo: todo.id,
-                page_size=6,
+                page_size=self.page_size,
             ).get_keyboard(self.page_number)
 
         keyboard.append([
@@ -105,6 +108,34 @@ class StartState(BaseState, DestroyInlineKeyboardMixin):
             case _:
                 return Locator('/', {'switch_page': True})
 
+    def exit_state(self, update: Update) -> None:
+        if self.show_done:
+            todos = Todo.get_all_for_user(self.chat_id)
+        else:
+            todos = Todo.get_active_for_user(self.chat_id)
+
+        if not todos:
+            edit_inline_keyboard(
+                chat_id=self.chat_id,
+                message_id=update.callback_query.message.message_id,
+                keyboard=None
+            )
+            return
+        else:
+            text = 'Привет!\nВот список твоих текущих задач:\n\n'
+            pages = list(more_itertools.chunked(
+                [str(todo) for todo in todos],
+                self.page_size,
+            ))
+            text += '\n'.join(pages[self.page_number - 1])
+
+        EditMessageTextRequest(
+            text=text,
+            chat_id=self.chat_id,
+            message_id=update.callback_query.message.message_id,
+            reply_markup=None,
+        ).send()
+
 
 @router.register('/todo/title/')
 class AddTodoTitleState(ClassicState):
@@ -130,13 +161,9 @@ class AddTodoContentState(ClassicState):
         )
 
     def handle_text_message(self, message_text: str) -> Locator:
-        if len(self.title) > 30:
-            title = self.title[:30]
-        else:
-            title = self.title
         Todo.create_for_user(
             user_id=self.chat_id,
-            title=title,
+            title=self.title,
             content=message_text
         )
         send_text_message(
@@ -147,7 +174,7 @@ class AddTodoContentState(ClassicState):
 
 
 @router.register('/todo/')
-class ShowTodoState(BaseState, DestroyInlineKeyboardMixin):
+class TodoState(DestroyInlineKeyboardMixin, BaseState):
     todo_id: int
 
     def enter_state(self, update: Update) -> Locator | None:
@@ -156,15 +183,16 @@ class ShowTodoState(BaseState, DestroyInlineKeyboardMixin):
             return Locator('/')
 
         text = f'<b>{todo}</b>\n\n{todo.content}'
+        keyboard_modes = ('normal', 'done')
         send_text_message(
             text,
             update.chat_id,
-            self.get_keyboard('normal'),
+            self.get_keyboard(keyboard_modes[todo.is_done]),
             parse_mode='HTML'
         )
 
-    def mark_todo_as_done(self) -> Locator:
-        Todo.mark_todo_as_done(self.todo_id)
+    def mark_todo_as_done(self, is_done: bool) -> Locator:
+        Todo.update(self.todo_id, is_done=is_done)
         return Locator('/')
 
     def delete_todo(self) -> Locator:
@@ -172,11 +200,17 @@ class ShowTodoState(BaseState, DestroyInlineKeyboardMixin):
         return Locator('/')
 
     @staticmethod
-    def get_keyboard(mode: Literal['normal', 'edit']):
+    def get_keyboard(mode: Literal['normal', 'edit', 'done']):
         if mode == 'edit':
             return generate_inline_buttons(
                 [('Редактировать название', 'edit_title'), ('Редактировать содержимое', 'edit_content')],
                 [('Отмена', 'cancel_edit')],
+            )
+        elif mode == 'done':
+            return generate_inline_buttons(
+                [('Не сделано', 'undone')],
+                [('Редактировать', 'edit'), ('Удалить', 'delete')],
+                [('Вернуться к списку', 'back')],
             )
         else:
             return generate_inline_buttons(
@@ -205,7 +239,9 @@ class ShowTodoState(BaseState, DestroyInlineKeyboardMixin):
 
         match update.callback_query.data:
             case 'done':
-                return self.mark_todo_as_done()
+                return self.mark_todo_as_done(True)
+            case 'undone':
+                return self.mark_todo_as_done(False)
             case 'edit':
                 self.switch_keyboard_to_edit_mode(update)
             case 'edit_title':
@@ -218,3 +254,33 @@ class ShowTodoState(BaseState, DestroyInlineKeyboardMixin):
                 return self.delete_todo()
             case 'back':
                 return Locator('/')
+
+
+@router.register('/todo/edit/title/')
+class EditTodoTitleState(ClassicState):
+    todo_id: int
+
+    def enter_state(self, update: Update) -> Locator | None:
+        send_text_message(
+            'Как переименовать задачу?',
+            update.chat_id,
+        )
+
+    def handle_text_message(self, message_text: str) -> Locator | None:
+        Todo.update(todo_id=self.todo_id, title=message_text)
+        return Locator('/todo/', {'todo_id': self.todo_id})
+
+
+@router.register('/todo/edit/content/')
+class EditTodoContentState(ClassicState):
+    todo_id: int
+
+    def enter_state(self, update: Update) -> Locator | None:
+        send_text_message(
+            'Пришли новое описание',
+            update.chat_id,
+        )
+
+    def handle_text_message(self, message_text: str) -> Locator | None:
+        Todo.update(todo_id=self.todo_id, content=message_text)
+        return Locator('/todo/', {'todo_id': self.todo_id})
