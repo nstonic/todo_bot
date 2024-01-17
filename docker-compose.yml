@@ -2,12 +2,8 @@ version: '3.7'
 
 services:
   todo_bot:
-    container_name: todo_bot
-    build:
-      context: ./
-      target: todo_bot_base
+    build: .
     environment:
-      POSTGRES_DSN: postgres://postgres_user:postgres_password@postgres:5432/postgres_db
       TG_BOT_TOKEN: ${TG_BOT_TOKEN?error}
     volumes:
       - ./src:/opt/app/src/
