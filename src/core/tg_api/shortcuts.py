@@ -111,7 +111,7 @@ def edit_text_message(
         return message
 
 
-def generate_reply_markup(keyboard: KeyboardMarkup | KeyboardSchema | None = None) -> KeyboardMarkup | None:
+def generate_reply_markup(keyboard: KeyboardMarkup | KeyboardSchema | None) -> KeyboardMarkup | None:
     """Generate InlineKeyboardMarkup or KeyboardMarkup automatically.
 
     @param keyboard: Keyboard given as:
