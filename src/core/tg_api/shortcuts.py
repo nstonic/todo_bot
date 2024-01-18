@@ -143,6 +143,6 @@ def generate_reply_markup(keyboard: KeyboardMarkup | KeyboardSchema | None = Non
                 buttons.append(buttons_line)
             return ReplyKeyboardMarkup(buttons)
         case keyboard if keyboard == [[]]:
-            return None
+            return
         case _:
             raise ValueError('Wrong keyboard format')
