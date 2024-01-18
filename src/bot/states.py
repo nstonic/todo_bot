@@ -13,8 +13,9 @@ from core import (
 from core.tg_api import Update, InlineKeyboardButton, EditMessageTextRequest
 from core.tg_api.shortcuts import (
     send_text_message,
-    edit_inline_keyboard, generate_inline_buttons,
+    edit_inline_keyboard,
 )
+from .helpers import generate_inline_buttons
 from .repositories import Todo, MemorySessionRepository
 from .state_classes import ClassicState, DestroyInlineKeyboardMixin
 
@@ -39,7 +40,7 @@ class StartState(BaseState):
     edit_message_id: int | None = None
     page_size: int = 6
 
-    def enter_state(self, update: Update) -> Locator | None:
+    def enter_state(self, update: Update) -> Locator | None:  # noqa
         if self.show_done:
             todos = Todo.get_all_for_user(self.chat_id)
             show_done_button = InlineKeyboardButton('Скрыть сделанные', callback_data='show_active')
@@ -142,7 +143,7 @@ class StartState(BaseState):
 @router.register('/todo/title/')
 class AddTodoTitleState(DestroyInlineKeyboardMixin, ClassicState):
 
-    def enter_state(self, update: Update) -> Locator | None:
+    def enter_state(self, update: Update) -> Locator | None:  # noqa
         message = send_text_message(
             text='Как назовем задачу?',
             chat_id=self.chat_id,
@@ -164,7 +165,7 @@ class AddTodoTitleState(DestroyInlineKeyboardMixin, ClassicState):
         if message_id := context.pop('last_message_id', None):
             edit_inline_keyboard(
                 update.chat_id,
-                message_id,
+                message_id,  # noqa
                 keyboard=None,
             )
 
@@ -173,7 +174,7 @@ class AddTodoTitleState(DestroyInlineKeyboardMixin, ClassicState):
 class AddTodoContentState(DestroyInlineKeyboardMixin, ClassicState):
     title: str
 
-    def enter_state(self, update: Update) -> Locator | None:
+    def enter_state(self, update: Update) -> Locator | None:  # noqa
         message = send_text_message(
             text='ОК. Опиши суть задачи.',
             chat_id=self.chat_id,
@@ -204,7 +205,7 @@ class AddTodoContentState(DestroyInlineKeyboardMixin, ClassicState):
         if message_id := context.pop('last_message_id', None):
             edit_inline_keyboard(
                 update.chat_id,
-                message_id,
+                message_id,  # noqa
                 keyboard=None,
             )
 
@@ -296,7 +297,7 @@ class TodoState(DestroyInlineKeyboardMixin, BaseState):
 class EditTodoTitleState(DestroyInlineKeyboardMixin, ClassicState):
     todo_id: int
 
-    def enter_state(self, update: Update) -> Locator | None:
+    def enter_state(self, update: Update) -> Locator | None:  # noqa
         message = send_text_message(
             'Как переименовать задачу?',
             update.chat_id,
@@ -319,7 +320,7 @@ class EditTodoTitleState(DestroyInlineKeyboardMixin, ClassicState):
         if message_id := context.pop('last_message_id', None):
             edit_inline_keyboard(
                 update.chat_id,
-                message_id,
+                message_id,  # noqa
                 keyboard=None,
             )
 
@@ -328,7 +329,7 @@ class EditTodoTitleState(DestroyInlineKeyboardMixin, ClassicState):
 class EditTodoContentState(DestroyInlineKeyboardMixin, ClassicState):
     todo_id: int
 
-    def enter_state(self, update: Update) -> Locator | None:
+    def enter_state(self, update: Update) -> Locator | None:  # noqa
         message = send_text_message(
             'Пришли новое описание',
             update.chat_id,
@@ -351,6 +352,6 @@ class EditTodoContentState(DestroyInlineKeyboardMixin, ClassicState):
         if message_id := context.pop('last_message_id', None):
             edit_inline_keyboard(
                 update.chat_id,
-                message_id,
+                message_id,  # noqa
                 keyboard=None,
             )

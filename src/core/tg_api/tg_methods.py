@@ -287,17 +287,17 @@ class SendBytesPhotoRequest(BaseTgRequest):
     See here https://core.telegram.org/bots/api#sendphoto
     """
 
-    chat_id: int = Field(
-        description=dedent("""\
-            Unique identifier for the target chat or username of the target channel (in the format @channelusername).
-        """),
-    )
     photo: bytes = Field(
         description=dedent("""\
             Photo to send. Pass a file_id as String to send a photo that exists on the Telegram servers (recommended),
             pass an HTTP URL as a String for Telegram to get a photo from the Internet, or upload a new photo using
             multipart/form-data. The photo must be at most 10 MB in size. The photo's width and height must not exceed
             10000 in total. Width and height ratio must be at most 20.
+        """),
+    )
+    chat_id: int = Field(
+        description=dedent("""\
+            Unique identifier for the target chat or username of the target channel (in the format @channelusername).
         """),
     )
     filename: str | None = Field(
@@ -361,6 +361,12 @@ class SendBytesPhotoRequest(BaseTgRequest):
             instructions to remove reply keyboard or to force a reply from the user.
         """),
     )
+
+    def __init__(self, *args, **kwargs):
+        if len(args) == 1:
+            super().__init__(photo=args[0], **kwargs)
+        else:
+            super().__init__(*args, **kwargs)
 
     async def asend(self) -> SendPhotoResponse:
         """Send HTTP request to `sendPhoto` Telegram Bot API endpoint asynchronously and parse response."""
@@ -389,17 +395,17 @@ class SendUrlPhotoRequest(BaseTgRequest):
     See here https://core.telegram.org/bots/api#sendphoto
     """
 
-    chat_id: int = Field(
-        description=dedent("""\
-            Unique identifier for the target chat or username of the target channel (in the format @channelusername).
-        """),
-    )
     photo: str = Field(
         description=dedent("""\
             Photo to send. Pass a file_id as String to send a photo that exists on the Telegram servers (recommended),
             pass an HTTP URL as a String for Telegram to get a photo from the Internet, or upload a new photo
             using multipart/form-data. The photo must be at most 10 MB in size. The photo's width and height
             must not exceed 10000 in total. Width and height ratio must be at most 20.
+        """),
+    )
+    chat_id: int = Field(
+        description=dedent("""\
+            Unique identifier for the target chat or username of the target channel (in the format @channelusername).
         """),
     )
     filename: str | None = Field(
@@ -464,6 +470,12 @@ class SendUrlPhotoRequest(BaseTgRequest):
         """),
     )
 
+    def __init__(self, *args, **kwargs):
+        if len(args) == 1:
+            super().__init__(photo=args[0], **kwargs)
+        else:
+            super().__init__(*args, **kwargs)
+
     async def asend(self) -> SendPhotoResponse:
         """Send HTTP request to `sendPhoto` Telegram Bot API endpoint asynchronously and parse response."""
         json_payload = await self.apost_as_json('sendPhoto')
@@ -491,16 +503,16 @@ class SendBytesDocumentRequest(BaseTgRequest):
     See here https://core.telegram.org/bots/api#senddocument
     """
 
-    chat_id: int = Field(
-        description=dedent("""\
-            Unique identifier for the target chat or username of the target channel (in the format @channelusername).
-        """),
-    )
     document: bytes = Field(
         description=dedent("""\
             File to send. Pass a file_id as String to send a file that exists on the Telegram servers (recommended),
             pass an HTTP URL as a String for Telegram to get a file from the Internet,
             or upload a new one using multipart/form-data.
+        """),
+    )
+    chat_id: int = Field(
+        description=dedent("""\
+            Unique identifier for the target chat or username of the target channel (in the format @channelusername).
         """),
     )
     filename: str | None = Field(
@@ -577,6 +589,12 @@ class SendBytesDocumentRequest(BaseTgRequest):
         """),
     )
 
+    def __init__(self, *args, **kwargs):
+        if len(args) == 1:
+            super().__init__(document=args[0], **kwargs)
+        else:
+            super().__init__(*args, **kwargs)
+
     async def asend(self) -> SendDocumentResponse:
         """Send HTTP request to `sendDocument` Telegram Bot API endpoint asynchronously and parse response."""
         content = self.dict(exclude_none=True, exclude={'document'})
@@ -604,16 +622,16 @@ class SendUrlDocumentRequest(BaseTgRequest):
     See here https://core.telegram.org/bots/api#senddocument
     """
 
-    chat_id: int = Field(
-        description=dedent("""\
-            Unique identifier for the target chat or username of the target channel (in the format @channelusername).
-        """),
-    )
     document: str = Field(
         description=dedent("""\
             File to send. Pass a file_id as String to send a file that exists on the Telegram servers (recommended),
             pass an HTTP URL as a String for Telegram to get a file from the Internet, or upload
             a new one using multipart/form-data.
+        """),
+    )
+    chat_id: int = Field(
+        description=dedent("""\
+            Unique identifier for the target chat or username of the target channel (in the format @channelusername).
         """),
     )
     filename: str | None = Field(
@@ -689,6 +707,12 @@ class SendUrlDocumentRequest(BaseTgRequest):
             instructions to remove reply keyboard or to force a reply from the user.
         """),
     )
+
+    def __init__(self, *args, **kwargs):
+        if len(args) == 1:
+            super().__init__(document=args[0], **kwargs)
+        else:
+            super().__init__(*args, **kwargs)
 
     async def asend(self) -> SendDocumentResponse:
         """Send HTTP request to `sendDocument` Telegram Bot API endpoint asynchronously and parse response."""
