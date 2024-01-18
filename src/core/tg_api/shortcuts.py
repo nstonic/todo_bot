@@ -1,3 +1,4 @@
+from types import NoneType
 from typing import Literal
 
 from .exceptions import TgHttpStatusError
@@ -111,17 +112,48 @@ def edit_text_message(
 
 
 def generate_reply_markup(keyboard: KeyboardMarkup | KeyboardSchema | None = None) -> KeyboardMarkup | None:
+    """Generate InlineKeyboardMarkup or KeyboardMarkup automatically.
+
+    @param keyboard: Keyboard given as:
+        list of lists of Button instances:
+            [[InlineKeyboardButton(text='Hello!', callback_data='hello')]] -> InlineKeyboadMarkup
+            [[KeyboardButton(text='Hello!')]] -> ReplyKeyboardMarkup
+        list of lists of dictonaries:
+            [[{'text': 'Hello!', 'callback_data': 'hello', **kwargs}]] -> InlineKeyboadMarkup
+            [[{'text': 'Hello!', **kwargs}]] -> ReplyKeyboardMarkup
+        list of lists of tuples. Only text and callback_data arguments is using:
+            [[('Hello!', 'hello')]] -> InlineKeyboadMarkup
+        list of lists of strings. Only text argument is using:
+            [['Hello!']] -> ReplyKeyboardMarkup
+    """
+    inline_buttons_kwargs = {
+        'url',
+        'callback_data',
+        'web_app',
+        'login_url',
+        'switch_inline_query',
+        'switch_inline_query_current_chat',
+        'switch_inline_query_chosen_chat',
+        'callback_game',
+        'pay',
+    }
+    reply_buttons_kwargs = {
+        'request_users',
+        'request_chat',
+        'request_contact',
+        'request_location',
+        'request_poll',
+        'web_app',
+    }
     match keyboard:
         case InlineKeyboardMarkup() | ReplyKeyboardMarkup() | None:
             return keyboard
-        #  Задача следующих паттернов - распознать, какую клавиатуру нужно создать.
-        #  Валидацией самих кнопок займутся модели маркапов.
-        case [[{'text': str(), 'callback_data': str()}, *_], *_] | [[InlineKeyboardButton(), *_], *_]:
-            #  Случай keyboard = [[{'text': 'Hello!', 'callback_data': 'hello', **kwargs}]]
-            #  Случай keyboard = [[InlineKeyboardButton(text='Hello!', callback_data='hello', **kwargs)]]
+
+        case [[InlineKeyboardButton(), *_], *_]:
+            return InlineKeyboardMarkup(keyboard)
+        case [[{'text': str(), **kwargs}, *_], *_] if set(kwargs.keys()) & inline_buttons_kwargs:
             return InlineKeyboardMarkup(keyboard)
         case [[(str(), str()), *_], *_]:
-            #  Случай keyboard = [[('Hello!', 'hello')]]
             buttons = []
             for line in keyboard:
                 buttons_line = []
@@ -129,19 +161,20 @@ def generate_reply_markup(keyboard: KeyboardMarkup | KeyboardSchema | None = Non
                     buttons_line.append(InlineKeyboardButton(text=text, callback_data=callback_data))
                 buttons.append(buttons_line)
             return InlineKeyboardMarkup(buttons)
-        case [[{'text': str()}, *_], *_] | [[KeyboardButton(), *_], *_]:
-            #  Случай keyboard = [[{'text': 'Hello!', **kwargs}]]
-            #  Случай keyboard = [[KeyboardButton(text='Hello!', **kwargs)]]
+
+        case [[KeyboardButton(), *_], *_]:
+            return ReplyKeyboardMarkup(keyboard)
+        case [[{'text': str(), **kwargs}, *_], *_] if not kwargs or set(kwargs.keys()) & reply_buttons_kwargs:
             return ReplyKeyboardMarkup(keyboard)
         case [[str(), *_], *_]:
-            #  Случай keyboard = [['Hello!']]
             buttons = []
             for line in keyboard:
                 buttons_line = []
-                for text, callback_data in line:
+                for text in line:
                     buttons_line.append(KeyboardButton(text=text))
                 buttons.append(buttons_line)
             return ReplyKeyboardMarkup(buttons)
+
         case keyboard if keyboard == [[]]:
             return
         case _:
