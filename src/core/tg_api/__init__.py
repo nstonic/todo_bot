@@ -1,6 +1,6 @@
 from .client import AsyncTgClient, SyncTgClient, raise_for_tg_response_status  # noqa F401
 from .exceptions import TgHttpStatusError, TgRuntimeError  # noqa F401
-from .shortcuts import send_text_message  # noqa F401
+from .shortcuts import send_text_message, edit_inline_keyboard  # noqa F401
 from .tg_methods import (  # noqa F401
     SendMessageResponse,
     SendMessageRequest,

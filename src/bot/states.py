@@ -10,12 +10,13 @@ from core import (
     Paginator,
     BaseState,
 )
-from core.tg_api import Update, InlineKeyboardButton, EditMessageTextRequest
-from core.tg_api.shortcuts import (
+from core.tg_api import (
+    Update,
+    InlineKeyboardButton,
+    EditMessageTextRequest,
     send_text_message,
     edit_inline_keyboard,
 )
-from .helpers import generate_inline_buttons
 from .repositories import Todo, MemorySessionRepository
 from .state_classes import ClassicState, DestroyInlineKeyboardMixin
 
@@ -239,22 +240,23 @@ class TodoState(DestroyInlineKeyboardMixin, BaseState):
     @staticmethod
     def get_keyboard(mode: Literal['normal', 'edit', 'done']):
         if mode == 'edit':
-            return generate_inline_buttons(
+            return [
                 [('Редактировать название', 'edit_title'), ('Редактировать содержимое', 'edit_content')],
                 [('Отмена', 'cancel_edit')],
-            )
+            ]
+
         elif mode == 'done':
-            return generate_inline_buttons(
+            return [
                 [('Не сделано', 'undone')],
                 [('Редактировать', 'edit'), ('Удалить', 'delete')],
                 [('Вернуться к списку', 'back')],
-            )
+            ]
         else:
-            return generate_inline_buttons(
+            return [
                 [('Сделано', 'done')],
                 [('Редактировать', 'edit'), ('Удалить', 'delete')],
                 [('Вернуться к списку', 'back')],
-            )
+            ]
 
     def switch_keyboard_to_edit_mode(self, update: Update):
         edit_inline_keyboard(
