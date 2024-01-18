@@ -117,7 +117,7 @@ def generate_reply_markup(keyboard: KeyboardMarkup | KeyboardSchema | None = Non
         #  Задача следующих паттернов - распознать, какую клавиатуру нужно создать.
         #  Валидацией самих кнопок займутся модели маркапов.
         case [[{'text': str(), 'callback_data': str()}, *_], *_] | [[InlineKeyboardButton(), *_], *_]:
-            #  Случай keyboard = [[{'text': 'Hello!', 'callback_data': 'hello'}]]
+            #  Случай keyboard = [[{'text': 'Hello!', 'callback_data': 'hello', **kwargs}]]
             #  Случай keyboard = [[InlineKeyboardButton(text='Hello!', callback_data='hello')]]
             return InlineKeyboardMarkup(keyboard)
         case [[(str(), str()), *_], *_]:
@@ -130,7 +130,7 @@ def generate_reply_markup(keyboard: KeyboardMarkup | KeyboardSchema | None = Non
                 buttons.append(buttons_line)
             return InlineKeyboardMarkup(buttons)
         case [[{'text': str()}, *_], *_] | [[KeyboardButton(), *_], *_]:
-            #  Случай keyboard = [[{'text': 'Hello!'}]]
+            #  Случай keyboard = [[{'text': 'Hello!', **kwargs}]]
             #  Случай keyboard = [[KeyboardButton(text='Hello!')]]
             return ReplyKeyboardMarkup(keyboard)
         case [[str(), *_], *_]:
