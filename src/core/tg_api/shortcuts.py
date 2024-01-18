@@ -110,16 +110,16 @@ def edit_text_message(
         return message
 
 
-def generate_reply_markup(keyboard: KeyboardMarkup | KeyboardSchema | None = None) -> KeyboardMarkup:
+def generate_reply_markup(keyboard: KeyboardMarkup | KeyboardSchema | None = None) -> KeyboardMarkup | None:
     match keyboard:
         case InlineKeyboardMarkup() | ReplyKeyboardMarkup() | None:
-            reply_markup = keyboard
+            return keyboard
         #  Задача следующих паттернов - распознать, какую клавиатуру нужно создать.
         #  Валидацией самих кнопок займутся модели маркапов.
         case [[{'text': str(), 'callback_data': str()}, *_], *_] | [[InlineKeyboardButton(), *_], *_]:
             #  Случай keyboard = [[{'text': 'Hello!', 'callback_data': 'hello'}]]
             #  Случай keyboard = [[InlineKeyboardButton(text='Hello!', callback_data='hello')]]
-            reply_markup = InlineKeyboardMarkup(keyboard)
+            return InlineKeyboardMarkup(keyboard)
         case [[(str(), str()), *_], *_]:
             #  Случай keyboard = [[('Hello!', 'hello')]]
             buttons = []
@@ -128,11 +128,11 @@ def generate_reply_markup(keyboard: KeyboardMarkup | KeyboardSchema | None = Non
                 for text, callback_data in line:
                     buttons_line.append(InlineKeyboardButton(text=text, callback_data=callback_data))
                 buttons.append(buttons_line)
-            reply_markup = InlineKeyboardMarkup(buttons)
+            return InlineKeyboardMarkup(buttons)
         case [[{'text': str()}, *_], *_] | [[KeyboardButton(), *_], *_]:
             #  Случай keyboard = [[{'text': 'Hello!'}]]
             #  Случай keyboard = [[KeyboardButton(text='Hello!')]]
-            reply_markup = ReplyKeyboardMarkup(keyboard)
+            return ReplyKeyboardMarkup(keyboard)
         case [[str(), *_], *_]:
             #  Случай keyboard = [['Hello!']]
             buttons = []
@@ -141,9 +141,8 @@ def generate_reply_markup(keyboard: KeyboardMarkup | KeyboardSchema | None = Non
                 for text, callback_data in line:
                     buttons_line.append(KeyboardButton(text=text))
                 buttons.append(buttons_line)
-            reply_markup = ReplyKeyboardMarkup(buttons)
-        case keyboard if keyboard == [[]]:  # Ни под один из паттернов не подходит, но и на ошибку не тянет
-            reply_markup = None  # Надо подумать
+            return ReplyKeyboardMarkup(buttons)
+        case keyboard if keyboard == [[]]:
+            return None
         case _:
             raise ValueError('Wrong keyboard format')
-    return reply_markup
