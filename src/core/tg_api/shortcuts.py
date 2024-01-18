@@ -118,7 +118,7 @@ def generate_reply_markup(keyboard: KeyboardMarkup | KeyboardSchema | None = Non
         #  Валидацией самих кнопок займутся модели маркапов.
         case [[{'text': str(), 'callback_data': str()}, *_], *_] | [[InlineKeyboardButton(), *_], *_]:
             #  Случай keyboard = [[{'text': 'Hello!', 'callback_data': 'hello', **kwargs}]]
-            #  Случай keyboard = [[InlineKeyboardButton(text='Hello!', callback_data='hello')]]
+            #  Случай keyboard = [[InlineKeyboardButton(text='Hello!', callback_data='hello', **kwargs)]]
             return InlineKeyboardMarkup(keyboard)
         case [[(str(), str()), *_], *_]:
             #  Случай keyboard = [[('Hello!', 'hello')]]
@@ -131,7 +131,7 @@ def generate_reply_markup(keyboard: KeyboardMarkup | KeyboardSchema | None = Non
             return InlineKeyboardMarkup(buttons)
         case [[{'text': str()}, *_], *_] | [[KeyboardButton(), *_], *_]:
             #  Случай keyboard = [[{'text': 'Hello!', **kwargs}]]
-            #  Случай keyboard = [[KeyboardButton(text='Hello!')]]
+            #  Случай keyboard = [[KeyboardButton(text='Hello!', **kwargs)]]
             return ReplyKeyboardMarkup(keyboard)
         case [[str(), *_], *_]:
             #  Случай keyboard = [['Hello!']]
