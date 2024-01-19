@@ -148,34 +148,42 @@ def generate_reply_markup(keyboard: KeyboardMarkup | KeyboardSchema | None) -> K
     match keyboard:
         case InlineKeyboardMarkup() | ReplyKeyboardMarkup() | None:
             return keyboard
+        case keyboard if keyboard == [[]]:
+            return
 
         case [[InlineKeyboardButton(), *_], *_]:
             return InlineKeyboardMarkup(keyboard)
         case [[{'text': str(), **kwargs}, *_], *_] if set(kwargs.keys()) & inline_buttons_kwargs:
             return InlineKeyboardMarkup(keyboard)
         case [[(str(), str()), *_], *_]:
-            buttons = []
-            for line in keyboard:
-                buttons_line = []
-                for text, callback_data in line:
-                    buttons_line.append(InlineKeyboardButton(text=text, callback_data=callback_data))
-                buttons.append(buttons_line)
-            return InlineKeyboardMarkup(buttons)
+            return _parse_inline_keyboard_tuples(keyboard)
 
         case [[KeyboardButton(), *_], *_]:
             return ReplyKeyboardMarkup(keyboard)
         case [[{'text': str(), **kwargs}, *_], *_] if not kwargs or set(kwargs.keys()) & reply_buttons_kwargs:
             return ReplyKeyboardMarkup(keyboard)
         case [[str(), *_], *_]:
-            buttons = []
-            for line in keyboard:
-                buttons_line = []
-                for text in line:
-                    buttons_line.append(KeyboardButton(text=text))
-                buttons.append(buttons_line)
-            return ReplyKeyboardMarkup(buttons)
+            return _parse_keyboard_tuples(keyboard)
 
-        case keyboard if keyboard == [[]]:
-            return
         case _:
             raise ValueError('Wrong keyboard format')
+
+
+def _parse_keyboard_tuples(keyboard: list[list[tuple]]) -> ReplyKeyboardMarkup:
+    buttons = []
+    for line in keyboard:
+        buttons_line = []
+        for text in line:
+            buttons_line.append(KeyboardButton(text=text))
+        buttons.append(buttons_line)
+    return ReplyKeyboardMarkup(buttons)
+
+
+def _parse_inline_keyboard_tuples(keyboard: list[list[tuple]]) -> InlineKeyboardMarkup:
+    buttons = []
+    for line in keyboard:
+        buttons_line = []
+        for text, callback_data in line:
+            buttons_line.append(InlineKeyboardButton(text=text, callback_data=callback_data))
+        buttons.append(buttons_line)
+    return InlineKeyboardMarkup(buttons)
