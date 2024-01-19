@@ -172,9 +172,10 @@ def generate_reply_markup(keyboard: KeyboardMarkup | KeyboardSchema | None) -> K
 def _parse_keyboard_strings(keyboard: list[list[str]]) -> ReplyKeyboardMarkup:
     buttons = []
     for line in keyboard:
-        buttons_line = []
-        for text in line:
-            buttons_line.append(KeyboardButton(text=text))
+        buttons_line = [
+            KeyboardButton(text=text)
+            for text in line
+        ]
         buttons.append(buttons_line)
     return ReplyKeyboardMarkup(buttons)
 
@@ -182,8 +183,9 @@ def _parse_keyboard_strings(keyboard: list[list[str]]) -> ReplyKeyboardMarkup:
 def _parse_inline_keyboard_tuples(keyboard: list[list[tuple]]) -> InlineKeyboardMarkup:
     buttons = []
     for line in keyboard:
-        buttons_line = []
-        for text, callback_data in line:
-            buttons_line.append(InlineKeyboardButton(text=text, callback_data=callback_data))
+        buttons_line = [
+            InlineKeyboardButton(text=text, callback_data=callback_data)
+            for text, callback_data in line
+        ]
         buttons.append(buttons_line)
     return InlineKeyboardMarkup(buttons)
