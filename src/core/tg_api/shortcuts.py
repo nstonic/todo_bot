@@ -169,7 +169,7 @@ def generate_reply_markup(keyboard: KeyboardMarkup | KeyboardSchema | None) -> K
             raise ValueError('Wrong keyboard format')
 
 
-def _parse_keyboard_strings(keyboard: list[list[tuple]]) -> ReplyKeyboardMarkup:
+def _parse_keyboard_strings(keyboard: list[list[str]]) -> ReplyKeyboardMarkup:
     buttons = []
     for line in keyboard:
         buttons_line = []
