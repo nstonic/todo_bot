@@ -126,7 +126,7 @@ def generate_reply_markup(keyboard: KeyboardMarkup | KeyboardSchema | None) -> K
         list of lists of strings. Only text argument is using:
             [['Hello!']] -> ReplyKeyboardMarkup
     """
-    inline_buttons_kwargs = {
+    inline_buttons_args = {
         'url',
         'callback_data',
         'web_app',
@@ -137,7 +137,7 @@ def generate_reply_markup(keyboard: KeyboardMarkup | KeyboardSchema | None) -> K
         'callback_game',
         'pay',
     }
-    reply_buttons_kwargs = {
+    reply_buttons_args = {
         'request_users',
         'request_chat',
         'request_contact',
@@ -153,23 +153,23 @@ def generate_reply_markup(keyboard: KeyboardMarkup | KeyboardSchema | None) -> K
 
         case [[InlineKeyboardButton(), *_], *_]:
             return InlineKeyboardMarkup(keyboard)
-        case [[{'text': str(), **kwargs}, *_], *_] if set(kwargs.keys()) & inline_buttons_kwargs:
+        case [[{'text': str(), **kwargs}, *_], *_] if set(kwargs.keys()) & inline_buttons_args:
             return InlineKeyboardMarkup(keyboard)
         case [[(str(), str()), *_], *_]:
             return _parse_inline_keyboard_tuples(keyboard)
 
         case [[KeyboardButton(), *_], *_]:
             return ReplyKeyboardMarkup(keyboard)
-        case [[{'text': str(), **kwargs}, *_], *_] if not kwargs or set(kwargs.keys()) & reply_buttons_kwargs:
+        case [[{'text': str(), **kwargs}, *_], *_] if not kwargs or set(kwargs.keys()) & reply_buttons_args:
             return ReplyKeyboardMarkup(keyboard)
         case [[str(), *_], *_]:
-            return _parse_keyboard_tuples(keyboard)
+            return _parse_keyboard_strings(keyboard)
 
         case _:
             raise ValueError('Wrong keyboard format')
 
 
-def _parse_keyboard_tuples(keyboard: list[list[tuple]]) -> ReplyKeyboardMarkup:
+def _parse_keyboard_strings(keyboard: list[list[tuple]]) -> ReplyKeyboardMarkup:
     buttons = []
     for line in keyboard:
         buttons_line = []
