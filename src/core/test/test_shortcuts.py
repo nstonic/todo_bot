@@ -47,6 +47,10 @@ def test_dicts():
         keyboard = InlineKeyboardMarkup([[button]])
         assert generate_reply_markup([[button]]) == keyboard
 
+    button = {'text': 'hello'}
+    keyboard = ReplyKeyboardMarkup([[button]])
+    assert generate_reply_markup(keyboard) == keyboard
+
     for argument in reply_buttons_kwargs:
         button = {'text': 'hello', **argument}
         keyboard = ReplyKeyboardMarkup([[button]])
